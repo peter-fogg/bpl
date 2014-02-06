@@ -48,7 +48,10 @@ type LineNumber = Integer
 data Token = Token { tokenType :: TokenType
                    , value :: String
                    , line :: LineNumber
-                   } deriving (Eq, Show)
+                   } deriving (Eq)
+
+instance Show Token where
+  show (Token t v l) = show t ++ " \"" ++ v ++ "\"" ++ " : (line " ++ show l ++ ")"
 
 reservedWords :: Map.Map String TokenType
 reservedWords = Map.fromList [ ("int", TkInt)

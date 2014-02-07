@@ -1,7 +1,6 @@
 module Scanner
        where
 
-import System.IO (IOMode(..), hClose, readFile, openFile)
 import System.Environment (getArgs)
 import Control.Monad (forM_)
 import Data.Char (isSpace, isAlpha, isDigit)
@@ -69,7 +68,7 @@ skipComments :: String -> LineNumber -> (String, LineNumber)
 skipComments [] line = ([], line)
 skipComments s line = readUntil "*/" s line
   where
-    readUntil pat [] line = ([], line)
+    readUntil _ [] line = ([], line)
     readUntil pat ('\n':s) line = readUntil pat s (line + 1)
     readUntil pat s line = let beginning = take (length pat) s
                       in
@@ -140,6 +139,7 @@ tokenize s = findTokens s 1 []
       | isSpace c = findTokens s line tokens
       | isAlpha c = findTokens irest line ((Token tokenType identifier line):tokens)
       | isDigit c = findTokens nrest line ((Token TkNumber (c:num) line):tokens)
+      | otherwise = Left $ "highly confused by character " ++ show c ++ " on line " ++ show line
                     where (num, nrest) = findNumber s
                           (id, irest) = findIdentifier s
                           identifier = c:id
@@ -147,6 +147,8 @@ tokenize s = findTokens s 1 []
                             Nothing -> TkIdentifier
                             Just t -> t
 
+
+main :: IO ()
 main = do
   args <- getArgs
   let testFile = case args of

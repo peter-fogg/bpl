@@ -3,6 +3,7 @@
 int fact( int n) {
   if(n<=1)
     return   1;
+    string s = "foo";
   else
     return n*fact(n-1);
 }

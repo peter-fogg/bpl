@@ -7,8 +7,9 @@ import Data.Char (isSpace, isAlpha, isDigit)
 import qualified Data.Map as Map
 
 data TokenType = TkIdentifier
-               | TkString
+               | TkStringLiteral
                | TkNumber
+               | TkString
                | TkInt
                | TkVoid
                | TkIf
@@ -53,7 +54,8 @@ instance Show Token where
   show (Token t v l) = show t ++ " \"" ++ v ++ "\"" ++ " : (line " ++ show l ++ ")"
 
 reservedWords :: Map.Map String TokenType
-reservedWords = Map.fromList [ ("int", TkInt)
+reservedWords = Map.fromList [ ("string", TkString)
+                             , ("int", TkInt)
                              , ("void", TkVoid)
                              , ("if", TkIf)
                              , ("else", TkElse)
@@ -133,7 +135,7 @@ tokenize s = findTokens s 1 []
     findTokens ('!':'=':s) line tokens = findTokens s line ((Token TkNotEqual "!=" line):tokens)
     findTokens ('"':s) line tokens = case findString s of
       Nothing -> Left $ "unterminated string on line " ++ (show line)
-      Just (token, rest) -> findTokens rest line ((Token TkString token line):tokens)
+      Just (token, rest) -> findTokens rest line ((Token TkStringLiteral token line):tokens)
     findTokens (c:s) line tokens
       | isSpace c = findTokens s line tokens
       | isAlpha c = findTokens irest line ((Token tokenType identifier line):tokens)

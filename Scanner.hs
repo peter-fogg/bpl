@@ -66,15 +66,14 @@ reservedWords = Map.fromList [ ("int", TkInt)
 
 skipComments :: String -> LineNumber -> (String, LineNumber)
 skipComments [] line = ([], line)
-skipComments s line = readUntil "*/" s line
+skipComments s line = go 1 s line
   where
-    readUntil _ [] line = ([], line)
-    readUntil pat ('\n':s) line = readUntil pat s (line + 1)
-    readUntil pat s line = let beginning = take (length pat) s
-                      in
-                       if pat == beginning
-                       then (drop (length pat) s, line)
-                       else readUntil pat (tail s) line
+    go _ [] line = ([], line)
+    go 0 s line = (s, line)
+    go n ('/':'*':s) line = go (n + 1) s line
+    go n ('*':'/':s) line = go (n - 1) s line
+    go n ('\n':s) line = go n s (line + 1)
+    go n s line = go n (tail s) line
 
 findString :: String -> Maybe (String, String)
 findString [] = Nothing

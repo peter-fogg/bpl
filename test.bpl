@@ -1,4 +1,4 @@
-/* A program to compute factorials. */
+/* A /*program*/ to compute factorials. */
 
 int fact( int n) {
   if(n<=1)

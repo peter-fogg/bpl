@@ -1,4 +1,4 @@
-module Scanner
+module Main
        where
 
 import System.Environment (getArgs)

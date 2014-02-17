@@ -1,8 +1,10 @@
-module Main
-       where
+module BPL.Scanner
+       ( TokenType
+       , LineNumber
+       , Token
+       , tokenize
+       )  where
 
-import System.Environment (getArgs)
-import Control.Monad (forM_)
 import Data.Char (isSpace, isAlpha, isDigit)
 import qualified Data.Map as Map
 
@@ -153,15 +155,3 @@ tokenize s = findTokens s 1 []
                           tokenType = case Map.lookup identifier reservedWords of
                             Nothing -> TkIdentifier
                             Just t -> t
-
-
-main :: IO ()
-main = do
-  args <- getArgs
-  let testFile = case args of
-        (fname:_) -> fname
-        _ -> "test.bpl"
-  contents <- readFile testFile
-  case tokenize contents of
-    Left err -> putStrLn $ "PROBLEMTOWN: " ++ err
-    Right tokens -> forM_ tokens (\t -> putStrLn (show t))

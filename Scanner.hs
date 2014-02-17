@@ -66,6 +66,23 @@ reservedWords = Map.fromList [ ("string", TkString)
                              , ("read", TkRead)
                              ]
 
+singleCharTokens :: Map.Map Char (LineNumber -> Token)
+singleCharTokens = Map.fromList [ ('(', Token TkLParen "(")
+                                , (')', Token TkRParen ")")
+                                , ('[', Token TkLSquare "[")
+                                , (']', Token TkRSquare "]")
+                                , ('{', Token TkLCurly "{")
+                                , ('}', Token TkRCurly "}")
+                                , (';', Token TkSemicolon ";")
+                                , (',', Token TkComma ",")
+                                , ('+', Token TkPlus "+")
+                                , ('-', Token TkMinus "-")
+                                , ('*', Token TkStar "*")
+                                , ('/', Token TkSlash "/")
+                                , ('%', Token TkPercent "%")
+                                , ('&', Token TkAmpersand "&")
+                                ]
+
 skipComments :: String -> LineNumber -> (String, LineNumber)
 skipComments [] line = ([], line)
 skipComments s line = go 1 s line
@@ -109,12 +126,6 @@ tokenize s = findTokens s 1 []
     findTokens ('\n':s) line tokens = findTokens s (line + 1) tokens
     findTokens ('/':'*':s) line tokens = let (rest, newLine) = skipComments s line
                                          in findTokens rest newLine tokens
-    findTokens ('(':s) line tokens = findTokens s line ((Token TkLParen "(" line):tokens)
-    findTokens (')':s) line tokens = findTokens s line ((Token TkRParen ")" line):tokens)
-    findTokens ('[':s) line tokens = findTokens s line ((Token TkLSquare "[" line):tokens)
-    findTokens (']':s) line tokens = findTokens s line ((Token TkRParen "]" line):tokens)
-    findTokens ('{':s) line tokens = findTokens s line ((Token TkLCurly "{" line):tokens)
-    findTokens ('}':s) line tokens = findTokens s line ((Token TkRCurly "}" line):tokens)
     findTokens ('=':c:s) line tokens = case c of
       '=' -> findTokens s line ((Token TkDoubleEqual "==" line):tokens)
       _ -> findTokens (c:s) line ((Token TkSingleEqual "=" line):tokens)
@@ -124,19 +135,14 @@ tokenize s = findTokens s 1 []
     findTokens ('>':c:s) line tokens = case c of
       '=' -> findTokens s line ((Token TkGEQ ">=" line):tokens)
       _ -> findTokens (c:s) line ((Token TkRAngle ">" line):tokens)
-    findTokens (';':s) line tokens = findTokens s line ((Token TkSemicolon ";" line):tokens)
-    findTokens (',':s) line tokens = findTokens s line ((Token TkComma "," line):tokens)
-    findTokens ('+':s) line tokens = findTokens s line ((Token TkPlus "+" line):tokens)
-    findTokens ('-':s) line tokens = findTokens s line ((Token TkMinus "-" line):tokens)
-    findTokens ('*':s) line tokens = findTokens s line ((Token TkStar "*" line):tokens)
-    findTokens ('/':s) line tokens = findTokens s line ((Token TkSlash "/" line):tokens)
-    findTokens ('%':s) line tokens = findTokens s line ((Token TkPercent "%" line):tokens)
-    findTokens ('&':s) line tokens = findTokens s line ((Token TkAmpersand "&" line):tokens)
     findTokens ('!':'=':s) line tokens = findTokens s line ((Token TkNotEqual "!=" line):tokens)
     findTokens ('"':s) line tokens = case findString s of
       Nothing -> Left $ "unterminated string on line " ++ (show line)
       Just (token, rest) -> findTokens rest line ((Token TkStringLiteral token line):tokens)
     findTokens (c:s) line tokens
+      | c `elem` Map.keys singleCharTokens = case Map.lookup c singleCharTokens of
+        Nothing -> Left "shouldn't be here"
+        Just token -> findTokens s line ((token line):tokens)
       | isSpace c = findTokens s line tokens
       | isAlpha c = findTokens irest line ((Token tokenType identifier line):tokens)
       | isDigit c = findTokens nrest line ((Token TkNumber (c:num) line):tokens)

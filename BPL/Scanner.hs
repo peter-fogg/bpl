@@ -57,22 +57,17 @@ findString s = go s ""
         go ('\n':_) _ = Nothing -- unterminated string
         go (c:rest) acc = go rest (c:acc)
 
-findNumber :: String -> (String, String)
-findNumber [] = ("", "")
-findNumber s = go s ""
-  where go [] acc = ("", reverse acc)
-        go (c:rest) acc = if isDigit c
-                          then go rest (c:acc)
-                          else (reverse acc, c:rest)
+findNumber = findThing isDigit
 
-findIdentifier :: String -> (String, String)
-findIdentifier [] = ("", "")
-findIdentifier s = go s ""
+findIdentifier = findThing isValidIdentifierChar
+  where isValidIdentifierChar c = c `elem` '_':['0' .. '9'] ++ ['a' .. 'z'] ++ ['A' .. 'Z']
+
+findThing :: (Char -> Bool) -> String -> (String, String)
+findThing f s = go s ""
   where go [] acc = ("", reverse acc)
-        go (c:rest) acc = if isValidIdentifierChar c
+        go (c:rest) acc = if f c
                           then go rest (c:acc)
                           else (reverse acc, c:rest)
-        isValidIdentifierChar c = c `elem` '_':['0' .. '9'] ++ ['a' .. 'z'] ++ ['A' .. 'Z']
 
 tokenize :: String -> Either String [Token]
 tokenize s = findTokens s 1 []

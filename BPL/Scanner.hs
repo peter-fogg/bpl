@@ -1,7 +1,7 @@
 module BPL.Scanner
-       ( TokenType
+       ( TokenType(..)
        , LineNumber
-       , Token
+       , Token(..)
        , tokenize
        )  where
 

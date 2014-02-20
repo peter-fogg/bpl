@@ -16,9 +16,9 @@ instance Monad Parser where
     (result, ts') <- runParser x ts
     runParser (f result) ts'
 
-  fail error = Parser $ \state -> case state of
-    [] -> Left $ "parse error at end of file : " ++ error
-    ((Token _ _ line):ts) -> Left $ "parse error at line: " ++ show line ++ " : " ++ error
+  fail err = Parser $ \state -> case state of
+    [] -> Left $ "parse error at end of file : " ++ err
+    ((Token _ _ line):ts) -> Left $ "parse error at line: " ++ show line ++ " : " ++ err
 
 instance Functor Parser where
   fmap f x = do

@@ -5,6 +5,7 @@ import System.Environment (getArgs)
 import Control.Monad (forM_)
 
 import BPL.Scanner
+import BPL.Parser
 
 main :: IO ()
 main = do

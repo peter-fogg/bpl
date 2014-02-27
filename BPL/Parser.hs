@@ -24,3 +24,26 @@ instance Functor Parser where
   fmap f x = do
     result <- x
     return (f result)
+
+consume :: TokenType -> Parser ()
+consume typ = Parser $ \(t:ts) ->
+  if tokenType t == typ
+  then Right ((), ts)
+  else Left $ errorString (show typ) t
+
+
+int :: Parser IntLiteral
+int = Parser $ \(t:ts) -> case t of
+  Token TkInt n line -> Right $ (IntLiteral $ read n, ts)
+  token -> Left $ errorString "integer" token
+
+string :: Parser StringLiteral
+string = Parser $ \(t:ts) -> case t of
+  Token TkStringLiteral s line -> Right $ (StringLiteral s, ts)
+  token -> Left $ errorString "string" token
+
+errorString :: String -> Token -> String
+errorString expected (Token t v l) = "expected " ++ expected
+                                     ++ ", found " ++ show t
+                                     ++ " with value " ++ v
+                                     ++ " on line " ++ show l

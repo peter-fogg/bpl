@@ -52,3 +52,7 @@ data Token = Token { tokenType :: TokenType
 
 instance Show Token where
   show (Token t v l) = show t ++ " \"" ++ v ++ "\"" ++ " : (line " ++ show l ++ ")"
+
+data IntLiteral = IntLiteral Int deriving (Show, Eq)
+
+data StringLiteral = StringLiteral String deriving (Show, Eq)

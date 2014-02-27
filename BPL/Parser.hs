@@ -32,9 +32,9 @@ consume typ = Parser $ \(t:ts) ->
   else Left $ errorString (show typ) t
 
 
-int :: Parser IntLiteral
-int = Parser $ \(t:ts) -> case t of
-  Token TkInt n line -> Right $ (IntLiteral $ read n, ts)
+number :: Parser IntLiteral
+number = Parser $ \(t:ts) -> case t of
+  Token TkNumber n line -> Right $ (IntLiteral $ read n, ts)
   token -> Left $ errorString "integer" token
 
 string :: Parser StringLiteral

@@ -25,6 +25,10 @@ instance Functor Parser where
     result <- x
     return (f result)
 
+-- What can we parse thus far? Eventually this should be the top-level
+-- parser function.
+parserThusFar = many1 number
+
 consume :: TokenType -> Parser ()
 consume typ = Parser $ \(t:ts) ->
   if tokenType t == typ

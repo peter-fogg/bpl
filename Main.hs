@@ -12,8 +12,8 @@ main = do
   args <- getArgs
   let testFile = case args of
         (fname:_) -> fname
-        _ -> "test.bpl"
+        _ -> "parser_test.bpl"
   contents <- readFile testFile
-  case tokenize contents of
+  case tokenize contents >>= runParser parserThusFar of
     Left err -> putStrLn $ "PROBLEMTOWN: " ++ err
-    Right tokens -> forM_ tokens (\t -> putStrLn (show t))
+    Right tokens -> putStrLn $ show tokens

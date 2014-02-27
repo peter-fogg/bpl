@@ -31,6 +31,16 @@ consume typ = Parser $ \(t:ts) ->
   then Right ((), ts)
   else Left $ errorString (show typ) t
 
+(<|>) :: Parser a -> Parser a -> Parser a
+p <|> q = Parser $ \ts -> case runParser p ts of
+  Right result -> Right result
+  Left err -> runParser q ts
+
+many1 :: Parser a -> Parser [a]
+many1 p = do
+  first <- p
+  rest <- (many1 p) <|> return []
+  return (first:rest)
 
 number :: Parser IntLiteral
 number = Parser $ \(t:ts) -> case t of

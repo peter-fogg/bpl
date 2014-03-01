@@ -56,3 +56,10 @@ instance Show Token where
 data IntLiteral = IntLiteral Int deriving (Show, Eq)
 
 data StringLiteral = StringLiteral String deriving (Show, Eq)
+
+data TypeSpecifier = TInt | TString | TVoid deriving (Show, Eq)
+
+data VarDec = VarDec TypeSpecifier String
+            | PointerDec TypeSpecifier String
+            | ArrayDec TypeSpecifier String Int
+            deriving (Show, Eq)

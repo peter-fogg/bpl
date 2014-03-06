@@ -3,6 +3,7 @@ module BPL.Parser
 
 import Control.Applicative
 import Control.Monad
+import qualified Data.Map as M
 
 import BPL.Types
 
@@ -38,7 +39,7 @@ instance Functor Parser where
 
 -- What can we parse thus far? Eventually this should be the top-level
 -- parser function.
-parserThusFar = some localDec
+parserThusFar = some expression
 
 consume :: TokenType -> Parser ()
 consume typ = Parser $ \(t:ts) ->
@@ -113,6 +114,124 @@ localDec = do
     (Nothing, Nothing) -> VarDec t ident
     (Nothing, Just (IntExp l))  -> ArrayDec t ident l
     (Just s, Nothing)  -> PointerDec t ident
+
+expression :: Parser Expr
+expression = do derefExp
+             <|> assignExp
+             <|> addrExp
+             <|> readExp
+             <|> compExp
+             <|> string
+
+assignExp :: Parser Expr
+assignExp = do
+  ref <- identifier
+  consume TkSingleEqual
+  val <- expression
+  return $ AssignExp ref val
+
+relOps :: M.Map TokenType RelOp
+relOps = M.fromList [ (TkRAngle, OpGe)
+                    , (TkLAngle, OpLe)
+                    , (TkLEQ, OpGeq)
+                    , (TkGEQ, OpLeq)
+                    , (TkDoubleEqual, OpEq)
+                    , (TkNotEqual, OpNeq)
+                    ]
+
+addOps :: M.Map TokenType ArithOp
+addOps = M.fromList [ (TkPlus, OpPlus)
+                    , (TkMinus, OpMinus)
+                    ]
+
+mulOps :: M.Map TokenType ArithOp
+mulOps = M.fromList [ (TkStar, OpTimes)
+                    , (TkSlash, OpDivide)
+                    , (TkPercent, OpMod)
+                    ]
+
+operator :: M.Map TokenType a -> Parser a
+operator map = Parser $ \(t:ts) ->
+  case M.lookup (tokenType t) map of
+    Just op -> Right (op, ts)
+    Nothing -> Left $ errorString "binary operator" t
+
+relOp :: Parser RelOp
+relOp = operator relOps
+
+addOp :: Parser ArithOp
+addOp = operator addOps
+
+mulOp :: Parser ArithOp
+mulOp = operator mulOps
+
+derefExp :: Parser Expr
+derefExp = do
+  consume TkStar
+  ref <- identifier
+  return $ DerefExp ref
+
+addrExp :: Parser Expr
+addrExp = do
+  consume TkAmpersand
+  ref <- identifier
+  return $ AddrExp ref
+
+arrayExp :: Parser Expr
+arrayExp = do
+  ref <- identifier
+  index <- squares expression
+  return $ ArrayExp ref index
+
+varExp :: Parser Expr
+varExp = fmap VarExp identifier
+
+funcExp :: Parser Expr
+funcExp = do
+  ident <- identifier
+  args <- parens $ (sep TkComma expression) <|> return []
+  return $ FuncExp ident args
+
+readExp :: Parser Expr
+readExp = do
+  consume TkRead
+  consume TkLParen
+  consume TkRParen
+  return ReadExp
+
+factor :: Parser Expr
+factor = number
+         <|> funcExp
+         <|> derefExp
+         <|> addrExp
+         <|> arrayExp
+         <|> varExp
+         <|> parens expression
+         <|> do
+           consume TkMinus
+           expr <- factor
+           return $ ArithExp (IntExp (-1)) OpTimes expr
+
+eExp :: Parser Expr
+eExp = infixParser addOp tExp ArithExp
+
+tExp :: Parser Expr
+tExp = infixParser mulOp factor ArithExp
+
+compExp :: Parser Expr
+compExp = infixParser relOp eExp CompExp
+
+infixParser :: Parser a -> Parser Expr -> (Expr -> a -> Expr -> Expr) -> Parser Expr
+infixParser opType exprType c = (first >>= rest) <|> first <|> exprType
+  where first = do
+          left <- exprType
+          op <- opType
+          right <- exprType
+          return $ c left op right
+        rest left = do
+          op <- opType
+          right <- exprType
+          return $ c left op right
 
 errorString :: String -> Token -> String
 errorString expected (Token t v l) = "expected " ++ expected

@@ -41,7 +41,7 @@ data TokenType = TkIdentifier
                | TkPercent
                | TkAmpersand
                | TkEOF
-               deriving (Eq, Show)
+               deriving (Eq, Show, Ord)
 
 type LineNumber = Integer
 
@@ -114,6 +114,7 @@ instance Show Expr where
           showIndent n (FuncExp func args) = indent n
                                              ++ "Function "
                                              ++ func
+                                             ++ "\n"
                                              ++ concatMap (\arg -> showIndent (n+1) arg ++ "\n") args
           showIndent n ReadExp = indent n ++ "read()"
           showIndent n (AssignExp ref exp) = indent n

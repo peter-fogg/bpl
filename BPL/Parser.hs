@@ -1,6 +1,7 @@
 module BPL.Parser
        where
 
+import Control.Applicative
 import Control.Monad
 
 import BPL.Types
@@ -20,6 +21,16 @@ instance Monad Parser where
     [] -> Left $ "parse error at end of file : " ++ err
     ((Token _ _ line):ts) -> Left $ "parse error at line: " ++ show line ++ " : " ++ err
 
+instance Applicative Parser where
+  pure = return
+  (<*>) = ap
+
+instance Alternative Parser where
+  empty = Parser $ \ts -> Left ""
+  p <|> q = Parser $ \ts -> case runParser p ts of
+    Left err -> runParser q ts
+    right -> right
+
 instance Functor Parser where
   fmap f x = do
     result <- x
@@ -27,24 +38,13 @@ instance Functor Parser where
 
 -- What can we parse thus far? Eventually this should be the top-level
 -- parser function.
-parserThusFar = many1 localDec
+parserThusFar = some localDec
 
 consume :: TokenType -> Parser ()
 consume typ = Parser $ \(t:ts) ->
   if tokenType t == typ
   then Right ((), ts)
   else Left $ errorString (show typ) t
-
-(<|>) :: Parser a -> Parser a -> Parser a
-p <|> q = Parser $ \ts -> case runParser p ts of
-  Right result -> Right result
-  Left err -> runParser q ts
-
-many1 :: Parser a -> Parser [a]
-many1 p = do
-  first <- p
-  rest <- (many1 p) <|> return []
-  return (first:rest)
 
 parseMaybe :: Parser a -> Parser (Maybe a)
 parseMaybe p = Parser $ \ts -> case runParser p ts of

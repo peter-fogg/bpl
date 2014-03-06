@@ -86,4 +86,39 @@ data Expr = CompExp Expr RelOp Expr
           | FuncExp String [Expr]
           | ReadExp
           | AssignExp String Expr
-          deriving (Show, Eq)
+          deriving (Eq)
+
+instance Show Expr where
+  show e = showIndent 0 e ++ "\n"
+    where showIndent n (CompExp left op right) = indent n
+                                                 ++ show op
+                                                 ++ "\n"
+                                                 ++ showIndent (n+1) left ++ "\n"
+                                                 ++ showIndent (n+1) right
+          showIndent n (ArithExp left op right) = indent n
+                                                  ++ show op
+                                                  ++ "\n"
+                                                  ++ showIndent (n+1) left ++ "\n"
+                                                  ++ showIndent (n+1) right
+          showIndent n (IntExp i) = indent n ++ show i
+          showIndent n (StringExp s) = indent n ++ s
+          showIndent n (VarExp ref) = indent n ++ ref
+          showIndent n (DerefExp ref) = indent n ++ "Deref " ++ ref
+          showIndent n (AddrExp ref) = indent n ++ "Address " ++ ref
+          showIndent n (ArrayExp ref index) = indent n
+                                              ++ "ArrayExp "
+                                              ++ ref
+                                              ++ "["
+                                              ++ show index
+                                              ++ "]"
+          showIndent n (FuncExp func args) = indent n
+                                             ++ "Function "
+                                             ++ func
+                                             ++ concatMap (\arg -> showIndent (n+1) arg ++ "\n") args
+          showIndent n ReadExp = indent n ++ "read()"
+          showIndent n (AssignExp ref exp) = indent n
+                                             ++ "Assign "
+                                             ++ ref
+                                             ++ "\n"
+                                             ++ showIndent (n+1) exp
+          indent n = concat $ replicate n "| "

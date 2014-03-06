@@ -68,7 +68,12 @@ data RelOp = OpLeq
            | OpGeq
            deriving (Show, Eq)
 
-data ArithOp = OpPlus | OpMinus | OpTimes | OpDivide | OpMod deriving (Show, Eq)
+data ArithOp = OpPlus
+             | OpMinus
+             | OpTimes
+             | OpDivide
+             | OpMod
+             deriving (Show, Eq)
 
 data Expr = CompExp Expr RelOp Expr
           | ArithExp Expr ArithOp Expr

@@ -80,8 +80,10 @@ data Expr = CompExp Expr RelOp Expr
           | IntExp Int
           | StringExp String
           | VarExp String
-          | PointerExp String
+          | DerefExp String
+          | AddrExp String
           | ArrayExp String Expr
           | FuncExp String [Expr]
           | ReadExp
+          | AssignExp String Expr
           deriving (Show, Eq)

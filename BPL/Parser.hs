@@ -46,6 +46,22 @@ consume typ = Parser $ \(t:ts) ->
   then Right ((), ts)
   else Left $ errorString (show typ) t
 
+wrap :: TokenType -> TokenType -> Parser a -> Parser a
+wrap l r p = do
+  consume l
+  result <- p
+  consume r
+  return result
+
+parens :: Parser a -> Parser a
+parens = wrap TkLParen TkRParen
+
+squares :: Parser a -> Parser a
+squares = wrap TkLSquare TkRSquare
+
+curlies :: Parser a -> Parser a
+curlies = wrap TkLCurly TkRCurly
+
 parseMaybe :: Parser a -> Parser (Maybe a)
 parseMaybe p = Parser $ \ts -> case runParser p ts of
   Right (result, ts') -> Right (Just result, ts')
@@ -73,23 +89,16 @@ identifier = Parser $ \(t:ts) -> case t of
   Token TkIdentifier s _ -> Right $ (s, ts)
   token -> Left $ errorString "identifier" token
 
-array :: Parser Int
-array = do
-  consume TkLSquare
-  IntLiteral len <- number
-  consume TkRSquare
-  return len
-
 localDec :: Parser VarDec
 localDec = do
   t <- dataType
   star <- parseMaybe $ consume TkStar
   ident <- identifier
-  len <- parseMaybe array
+  len <- parseMaybe $ squares number
   consume TkSemicolon
   return $ case (star, len) of
     (Nothing, Nothing) -> VarDec t ident
-    (Nothing, Just l)  -> ArrayDec t ident l
+    (Nothing, Just (IntLiteral l))  -> ArrayDec t ident l
     (Just s, Nothing)  -> PointerDec t ident
 
 errorString :: String -> Token -> String

@@ -46,12 +46,25 @@ consume typ = Parser $ \(t:ts) ->
   then Right ((), ts)
   else Left $ errorString (show typ) t
 
+oneOf :: [TokenType] -> Parser TokenType
+oneOf tokens = Parser $ \(t:ts) ->
+  let typ = tokenType t in
+  if typ `elem` tokens
+  then Right (typ, ts)
+  else Left $ "expected on of " ++ show tokens ++ ", found " ++ show typ
+
 wrap :: TokenType -> TokenType -> Parser a -> Parser a
 wrap l r p = do
   consume l
   result <- p
   consume r
   return result
+
+sep :: TokenType -> Parser a -> Parser [a]
+sep t p = do
+  result <- p
+  rest <- (consume t >> sep t p) <|> return []
+  return $ result:rest
 
 parens :: Parser a -> Parser a
 parens = wrap TkLParen TkRParen

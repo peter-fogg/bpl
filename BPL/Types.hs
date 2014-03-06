@@ -70,6 +70,9 @@ data ArithOp = OpPlus
              | OpMod
              deriving (Show, Eq)
 
+data Var = IdVar String | ArrVar String Expr | DerefVar String
+         deriving (Eq, Show)
+
 data Expr = CompExp Expr RelOp Expr
           | ArithExp Expr ArithOp Expr
           | IntExp Int
@@ -80,7 +83,7 @@ data Expr = CompExp Expr RelOp Expr
           | ArrayExp String Expr
           | FuncExp String [Expr]
           | ReadExp
-          | AssignExp String Expr
+          | AssignExp Var Expr
           deriving (Eq)
 
 instance Show Expr where
@@ -114,7 +117,7 @@ instance Show Expr where
           showIndent n ReadExp = indent n ++ "read()"
           showIndent n (AssignExp ref exp) = indent n
                                              ++ "Assign "
-                                             ++ ref
+                                             ++ show ref
                                              ++ "\n"
                                              ++ showIndent (n+1) exp
           indent n = concat $ replicate n "| "

@@ -116,16 +116,26 @@ localDec = do
     (Just s, Nothing)  -> PointerDec t ident
 
 expression :: Parser Expr
-expression = do derefExp
-             <|> assignExp
+expression = assignExp
+             <|> derefExp
              <|> addrExp
              <|> readExp
              <|> compExp
              <|> string
 
+var :: Parser Var
+var = do
+  star <- parseMaybe $ consume TkStar
+  ref <- identifier
+  index <- parseMaybe $ squares expression
+  return $ case (star, index) of
+    (Nothing, Nothing) -> IdVar ref
+    (Nothing, Just e) -> ArrVar ref e
+    (Just _, Nothing) -> DerefVar ref
+
 assignExp :: Parser Expr
 assignExp = do
-  ref <- identifier
+  ref <- var
   consume TkSingleEqual
   val <- expression
   return $ AssignExp ref val

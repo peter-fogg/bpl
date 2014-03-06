@@ -67,14 +67,14 @@ parseMaybe p = Parser $ \ts -> case runParser p ts of
   Right (result, ts') -> Right (Just result, ts')
   Left err -> Right (Nothing, ts)
 
-number :: Parser IntLiteral
+number :: Parser Expr
 number = Parser $ \(t:ts) -> case t of
-  Token TkNumber n line -> Right $ (IntLiteral $ read n, ts)
+  Token TkNumber n line -> Right $ (IntExp $ read n, ts)
   token -> Left $ errorString "integer" token
 
-string :: Parser StringLiteral
+string :: Parser Expr
 string = Parser $ \(t:ts) -> case t of
-  Token TkStringLiteral s line -> Right $ (StringLiteral s, ts)
+  Token TkStringLiteral s line -> Right $ (StringExp s, ts)
   token -> Left $ errorString "string" token
 
 dataType :: Parser TypeSpecifier
@@ -98,7 +98,7 @@ localDec = do
   consume TkSemicolon
   return $ case (star, len) of
     (Nothing, Nothing) -> VarDec t ident
-    (Nothing, Just (IntLiteral l))  -> ArrayDec t ident l
+    (Nothing, Just (IntExp l))  -> ArrayDec t ident l
     (Just s, Nothing)  -> PointerDec t ident
 
 errorString :: String -> Token -> String

@@ -53,13 +53,30 @@ data Token = Token { tokenType :: TokenType
 instance Show Token where
   show (Token t v l) = show t ++ " \"" ++ v ++ "\"" ++ " : (line " ++ show l ++ ")"
 
-data IntLiteral = IntLiteral Int deriving (Show, Eq)
-
-data StringLiteral = StringLiteral String deriving (Show, Eq)
-
 data TypeSpecifier = TInt | TString | TVoid deriving (Show, Eq)
 
 data VarDec = VarDec TypeSpecifier String
             | PointerDec TypeSpecifier String
             | ArrayDec TypeSpecifier String Int
             deriving (Show, Eq)
+
+data RelOp = OpLeq
+           | OpLe
+           | OpEq
+           | OpNeq
+           | OpGe
+           | OpGeq
+           deriving (Show, Eq)
+
+data ArithOp = OpPlus | OpMinus | OpTimes | OpDivide | OpMod deriving (Show, Eq)
+
+data Expr = CompExp Expr RelOp Expr
+          | ArithExp Expr ArithOp Expr
+          | IntExp Int
+          | StringExp String
+          | VarExp String
+          | PointerExp String
+          | ArrayExp String Expr
+          | FuncExp String [Expr]
+          | ReadExp
+          deriving (Show, Eq)

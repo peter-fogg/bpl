@@ -1,10 +1,5 @@
 module BPL.Types
        where
-       -- (TokenType(..)
-       -- , LineNumber
-       -- , Token(..)
-       -- , IntLiteral
-       -- ) where
 
 data TokenType = TkIdentifier
                | TkStringLiteral

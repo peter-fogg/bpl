@@ -55,6 +55,12 @@ data VarDec = VarDec TypeSpecifier String
             | ArrayDec TypeSpecifier String Int
             deriving (Show, Eq)
 
+data FunDec = FunDec TypeSpecifier String [VarDec] Statement
+            deriving (Show, Eq)
+
+data Declaration = FDecl FunDec | VDecl VarDec
+                 deriving (Show, Eq)
+
 data RelOp = OpLeq
            | OpLe
            | OpEq

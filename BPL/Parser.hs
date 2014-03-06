@@ -39,7 +39,10 @@ instance Functor Parser where
 
 -- What can we parse thus far? Eventually this should be the top-level
 -- parser function.
-parserThusFar = some statement
+parserThusFar = do
+  decls <- some declaration
+  consume TkEOF
+  return decls
 
 consume :: TokenType -> Parser ()
 consume typ = Parser $ \(t:ts) ->
@@ -102,6 +105,34 @@ identifier :: Parser String
 identifier = Parser $ \(t:ts) -> case t of
   Token TkIdentifier s _ -> Right $ (s, ts)
   token -> Left $ errorString "identifier" token
+
+declaration :: Parser Declaration
+declaration = do
+  func <- parseMaybe funDec
+  var <- parseMaybe localDec
+  case (func, var) of
+    (Just f, Nothing) -> return $ FDecl f
+    (Nothing, Just v) -> return $ VDecl v
+    (_, _) -> fail "expected declaration"
+
+param :: Parser VarDec
+param = do
+  t <- dataType
+  star <- parseMaybe $ consume TkStar
+  ident <- identifier
+  arr <- parseMaybe $ squares $ return ()
+  return $ case (star, arr) of
+    (Nothing, Nothing) -> VarDec t ident
+    (Nothing, Just _)  -> ArrayDec t ident 0 -- We'll never use the length
+    (Just s, Nothing)  -> PointerDec t ident
+
+funDec :: Parser FunDec
+funDec = do
+  typ <- dataType
+  name <- identifier
+  params <- parens $ (sep TkComma param) <|> (consume TkVoid >> return [])
+  body <- compoundStmt
+  return $ FunDec typ name params body
 
 localDec :: Parser VarDec
 localDec = do

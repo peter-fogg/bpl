@@ -39,7 +39,7 @@ instance Functor Parser where
 
 -- What can we parse thus far? Eventually this should be the top-level
 -- parser function.
-parserThusFar = some expression
+parserThusFar = some statement
 
 consume :: TokenType -> Parser ()
 consume typ = Parser $ \(t:ts) ->
@@ -232,6 +232,70 @@ infixParser opType exprType c = (first >>= rest) <|> first <|> exprType
           op <- opType
           right <- exprType
           return $ c left op right
+
+statement :: Parser Statement
+statement = compoundStmt
+            <|> ifStmt
+            <|> whileStmt
+            <|> returnStmt
+            <|> writeStmt
+            <|> writeLnStmt
+            <|> expressionStmt
+
+compoundStmt :: Parser Statement
+compoundStmt = curlies $ do
+  decls <- many localDec
+  stmts <- many statement
+  return $ CompoundStmt decls stmts
+
+expressionStmt :: Parser Statement
+expressionStmt = do
+  expr <- expression
+  consume TkSemicolon
+  return $ ExpressionStmt expr
+
+ifStmt :: Parser Statement
+ifStmt = do
+  consume TkIf
+  cond <- parens expression
+  stmt <- statement
+  els <- parseMaybe elseStmt
+  return $ case els of
+    Nothing -> IfStmt cond stmt
+    Just s -> IfElseStmt cond stmt s
+
+elseStmt :: Parser Statement
+elseStmt = do
+  consume TkElse
+  statement
+
+whileStmt :: Parser Statement
+whileStmt = do
+  consume TkWhile
+  cond <- parens expression
+  stmt <- statement
+  return $ WhileStmt cond stmt
+
+returnStmt :: Parser Statement
+returnStmt = do
+  consume TkReturn
+  expr <- parseMaybe expression
+  consume TkSemicolon
+  return $ ReturnStmt expr
+
+writeStmt :: Parser Statement
+writeStmt = do
+  consume TkWrite
+  expr <- parens expression
+  consume TkSemicolon
+  return $ WriteStmt expr
+
+writeLnStmt :: Parser Statement
+writeLnStmt = do
+  consume TkWriteLn
+  parens (return ())
+  consume TkSemicolon
+  return WriteLnStmt
 
 errorString :: String -> Token -> String
 errorString expected (Token t v l) = "expected " ++ expected

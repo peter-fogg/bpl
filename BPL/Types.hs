@@ -118,3 +118,13 @@ instance Show Expr where
                                              ++ "\n"
                                              ++ showIndent (n+1) exp
           indent n = concat $ replicate n "| "
+
+data Statement = CompoundStmt [VarDec] [Statement]
+               | ExpressionStmt Expr
+               | IfStmt Expr Statement
+               | IfElseStmt Expr Statement Statement
+               | WhileStmt Expr Statement
+               | ReturnStmt (Maybe Expr)
+               | WriteStmt Expr
+               | WriteLnStmt
+               deriving (Show, Eq)

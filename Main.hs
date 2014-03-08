@@ -16,4 +16,4 @@ main = do
   contents <- readFile testFile
   case tokenize contents >>= runParser parserThusFar of
     Left err -> putStrLn $ "PROBLEMTOWN: " ++ err
-    Right tokens -> putStrLn $ show tokens
+    Right (decls, _) -> putStr $ concatMap show decls

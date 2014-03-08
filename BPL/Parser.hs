@@ -37,9 +37,7 @@ instance Functor Parser where
     result <- x
     return (f result)
 
--- What can we parse thus far? Eventually this should be the top-level
--- parser function.
-parserThusFar = do
+parseBPL = do
   decls <- some declaration
   consume TkEOF
   return decls

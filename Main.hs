@@ -14,6 +14,6 @@ main = do
         (fname:_) -> fname
         _ -> "parser_test.bpl"
   contents <- readFile testFile
-  case tokenize contents >>= runParser parserThusFar of
+  case tokenize contents >>= runParser parseBPL of
     Left err -> putStrLn $ "PROBLEMTOWN: " ++ err
     Right (decls, _) -> putStr $ concatMap show decls

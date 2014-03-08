@@ -1,6 +1,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 
 module BPL.Instances
+       ()
        where
 
 import Control.Applicative

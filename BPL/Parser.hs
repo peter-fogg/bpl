@@ -1,4 +1,7 @@
 module BPL.Parser
+       (
+         parseBPL
+       )
        where
 
 import Control.Applicative

@@ -4,8 +4,10 @@ module Main
 import System.Environment (getArgs)
 import Control.Monad (forM_)
 
-import BPL.Scanner
+import BPL.Instances
 import BPL.Parser
+import BPL.Scanner
+import BPL.Types
 
 main :: IO ()
 main = do

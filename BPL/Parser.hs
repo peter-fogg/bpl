@@ -20,17 +20,17 @@ endParse :: Parser a
 endParse = Parser $ \_ -> Right Nothing
 
 consume :: TokenType -> Parser ()
-consume typ = Parser $ \(t:ts) ->
-  if tokenType t == typ
-  then Right $ Just ((), ts)
-  else Right Nothing
+consume typ = Parser $ \(t:ts) -> Right $
+                                  if tokenType t == typ
+                                  then Just ((), ts)
+                                  else  Nothing
 
 oneOf :: [TokenType] -> Parser TokenType
-oneOf tokens = Parser $ \(t:ts) ->
+oneOf tokens = Parser $ \(t:ts) -> Right $
   let typ = tokenType t in
   if typ `elem` tokens
-  then Right $ Just (typ, ts)
-  else Right Nothing
+  then Just (typ, ts)
+  else Nothing
 
 wrap :: TokenType -> TokenType -> Parser a -> Parser a
 wrap l r p = do
@@ -108,7 +108,7 @@ funDec :: Parser FunDec
 funDec = do
   typ <- dataType
   name <- identifier
-  params <- parens $ (consume TkVoid >> return []) <|> (sep TkComma param)
+  params <- parens $ (consume TkVoid >> return []) <|> sep TkComma param
   body <- compoundStmt
   return $ FunDec typ name params body
 
@@ -208,14 +208,13 @@ varExp = fmap VarExp identifier
 funcExp :: Parser Expr
 funcExp = do
   ident <- identifier
-  args <- parens $ (sep TkComma expression) <|> return []
+  args <- parens $ sep TkComma expression <|> return []
   return $ FuncExp ident args
 
 readExp :: Parser Expr
 readExp = do
   consume TkRead
-  consume TkLParen <|> fail "malformed read()"
-  consume TkRParen <|> fail "malformed read()"
+  parens (return ()) <|> fail "malformed read()"
   return ReadExp
 
 factor :: Parser Expr
@@ -242,11 +241,7 @@ compExp = infixParser relOp eExp CompExp
 
 infixParser :: Parser a -> Parser Expr -> (Expr -> a -> Expr -> Expr) -> Parser Expr
 infixParser opType exprType c = (first >>= rest) <|> first <|> exprType
-  where first = do
-          left <- exprType
-          op <- opType
-          right <- exprType
-          return $ c left op right
+  where first = exprType >>= rest
         rest left = do
           op <- opType
           right <- exprType

@@ -20,7 +20,7 @@ instance Monad Parser where
 
   fail err = Parser $ \state -> case state of
     [] -> Left $ "parse error at end of file : " ++ err
-    ((Token _ _ line):ts) -> Left $ "parse error at line: " ++ show line ++ " : " ++ err
+    (Token _ _ line:ts) -> Left $ "parse error at line: " ++ show line ++ " : " ++ err
 
 instance Applicative Parser where
   pure = return
@@ -74,7 +74,7 @@ instance ShowIndent Expr where
                                      ++ "FunCall "
                                      ++ func
                                      ++ "\n"
-                                     ++ concatMap (\arg -> showIndent (n+1) arg) args
+                                     ++ concatMap (showIndent (n+1)) args
   showIndent n ReadExp = indent n ++ "ReadExp\n"
   showIndent n (AssignExp ref exp) = indent n
                                      ++ "Assign "
@@ -91,8 +91,8 @@ instance ShowIndent Statement where
     WriteStmt expr -> indent n ++ "WriteStmt\n" ++ showIndent (n+1) expr
     CompoundStmt decs statements -> indent n
                                     ++ "CompoundStmt\n"
-                                    ++ concatMap (\dec -> showIndent (n+1) dec) decs
-                                    ++ concatMap (\smt -> showIndent (n+1) smt) statements
+                                    ++ concatMap (showIndent (n+1)) decs
+                                    ++ concatMap (showIndent (n+1)) statements
     ExpressionStmt expr -> showIndent n expr
     IfStmt expr stmt -> indent n
                         ++ "IfStmt\n"
@@ -156,7 +156,7 @@ instance ShowIndent FunDec where
                                                   ++ "\n"
                                                   ++ indent (n+1)
                                                   ++ "Args:\n"
-                                                  ++ concatMap (\d -> showIndent (n+2) d) decls
+                                                  ++ concatMap (showIndent (n+2)) decls
                                                   ++ indent (n+1)
                                                   ++ "Body:\n"
                                                   ++ showIndent (n+2) stmt

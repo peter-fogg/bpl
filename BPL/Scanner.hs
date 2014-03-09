@@ -4,39 +4,40 @@ module BPL.Scanner
        )  where
 
 import Data.Char (isSpace, isAlpha, isDigit)
-import qualified Data.Map as Map
+import qualified Data.Map as M
+import Data.Maybe (fromMaybe)
 
 import BPL.Types
 
-reservedWords :: Map.Map String TokenType
-reservedWords = Map.fromList [ ("string", TkString)
-                             , ("int", TkInt)
-                             , ("void", TkVoid)
-                             , ("if", TkIf)
-                             , ("else", TkElse)
-                             , ("while", TkWhile)
-                             , ("return", TkReturn)
-                             , ("write", TkWrite)
-                             , ("writeln", TkWriteLn)
-                             , ("read", TkRead)
-                             ]
+reservedWords :: M.Map String TokenType
+reservedWords = M.fromList [ ("string", TkString)
+                           , ("int", TkInt)
+                           , ("void", TkVoid)
+                           , ("if", TkIf)
+                           , ("else", TkElse)
+                           , ("while", TkWhile)
+                           , ("return", TkReturn)
+                           , ("write", TkWrite)
+                           , ("writeln", TkWriteLn)
+                           , ("read", TkRead)
+                           ]
 
-singleCharTokens :: Map.Map Char (LineNumber -> Token)
-singleCharTokens = Map.fromList [ ('(', Token TkLParen "(")
-                                , (')', Token TkRParen ")")
-                                , ('[', Token TkLSquare "[")
-                                , (']', Token TkRSquare "]")
-                                , ('{', Token TkLCurly "{")
-                                , ('}', Token TkRCurly "}")
-                                , (';', Token TkSemicolon ";")
-                                , (',', Token TkComma ",")
-                                , ('+', Token TkPlus "+")
-                                , ('-', Token TkMinus "-")
-                                , ('*', Token TkStar "*")
-                                , ('/', Token TkSlash "/")
-                                , ('%', Token TkPercent "%")
-                                , ('&', Token TkAmpersand "&")
-                                ]
+singleCharTokens :: M.Map Char (LineNumber -> Token)
+singleCharTokens = M.fromList [ ('(', Token TkLParen "(")
+                              , (')', Token TkRParen ")")
+                              , ('[', Token TkLSquare "[")
+                              , (']', Token TkRSquare "]")
+                              , ('{', Token TkLCurly "{")
+                              , ('}', Token TkRCurly "}")
+                              , (';', Token TkSemicolon ";")
+                              , (',', Token TkComma ",")
+                              , ('+', Token TkPlus "+")
+                              , ('-', Token TkMinus "-")
+                              , ('*', Token TkStar "*")
+                              , ('/', Token TkSlash "/")
+                              , ('%', Token TkPercent "%")
+                              , ('&', Token TkAmpersand "&")
+                              ]
 
 skipComments :: String -> LineNumber -> (String, LineNumber)
 skipComments [] line = ([], line)
@@ -72,34 +73,33 @@ findThing f s = go s ""
 tokenize :: String -> Either String [Token]
 tokenize s = findTokens s 1 []
   where
-    findTokens [] line tokens = Right $ reverse ((Token TkEOF "" line):tokens)
+    findTokens [] line tokens = Right $ reverse (Token TkEOF "" line:tokens)
     findTokens ('\n':s) line tokens = findTokens s (line + 1) tokens
     findTokens ('/':'*':s) line tokens = let (rest, newLine) = skipComments s line
                                          in findTokens rest newLine tokens
     findTokens ('=':c:s) line tokens = case c of
-      '=' -> findTokens s line ((Token TkDoubleEqual "==" line):tokens)
-      _ -> findTokens (c:s) line ((Token TkSingleEqual "=" line):tokens)
+      '=' -> findTokens s line (Token TkDoubleEqual "==" line:tokens)
+      _ -> findTokens (c:s) line (Token TkSingleEqual "=" line:tokens)
     findTokens ('<':c:s) line tokens = case c of
-      '=' -> findTokens s line ((Token TkLEQ "<=" line):tokens)
-      _ -> findTokens (c:s) line ((Token TkLAngle "<" line):tokens)
+      '=' -> findTokens s line (Token TkLEQ "<=" line:tokens)
+      _ -> findTokens (c:s) line (Token TkLAngle "<" line:tokens)
     findTokens ('>':c:s) line tokens = case c of
-      '=' -> findTokens s line ((Token TkGEQ ">=" line):tokens)
-      _ -> findTokens (c:s) line ((Token TkRAngle ">" line):tokens)
-    findTokens ('!':'=':s) line tokens = findTokens s line ((Token TkNotEqual "!=" line):tokens)
+      '=' -> findTokens s line (Token TkGEQ ">=" line:tokens)
+      _ -> findTokens (c:s) line (Token TkRAngle ">" line:tokens)
+    findTokens ('!':'=':s) line tokens = findTokens s line (Token TkNotEqual "!=" line:tokens)
     findTokens ('"':s) line tokens = case findString s of
-      Nothing -> Left $ "unterminated string on line " ++ (show line)
-      Just (token, rest) -> findTokens rest line ((Token TkStringLiteral token line):tokens)
+      Nothing -> Left $ "unterminated string on line " ++ show line
+      Just (token, rest) -> findTokens rest line (Token TkStringLiteral token line:tokens)
     findTokens (c:s) line tokens
-      | c `elem` Map.keys singleCharTokens = case Map.lookup c singleCharTokens of
+      | c `elem` M.keys singleCharTokens = case M.lookup c singleCharTokens of
         Nothing -> Left "shouldn't be here"
-        Just token -> findTokens s line ((token line):tokens)
+        Just token -> findTokens s line (token line:tokens)
       | isSpace c = findTokens s line tokens
-      | isAlpha c = findTokens irest line ((Token tokenType identifier line):tokens)
-      | isDigit c = findTokens nrest line ((Token TkNumber (c:num) line):tokens)
+      | isAlpha c = findTokens irest line (Token tokenType identifier line:tokens)
+      | isDigit c = findTokens nrest line (Token TkNumber (c:num) line:tokens)
       | otherwise = Left $ "highly confused by character " ++ show c ++ " on line " ++ show line
                     where (num, nrest) = findNumber s
                           (id, irest) = findIdentifier s
                           identifier = c:id
-                          tokenType = case Map.lookup identifier reservedWords of
-                            Nothing -> TkIdentifier
-                            Just t -> t
+                          tokenType = fromMaybe TkIdentifier (M.lookup identifier reservedWords)
+

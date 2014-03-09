@@ -2,9 +2,7 @@ module Main
        where
 
 import System.Environment (getArgs)
-import Control.Monad (forM_)
 
-import BPL.Instances
 import BPL.Parser
 import BPL.Scanner
 import BPL.Types

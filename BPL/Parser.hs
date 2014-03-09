@@ -5,11 +5,10 @@ module BPL.Parser
        where
 
 import Control.Applicative
-import Control.Monad
 import qualified Data.Map as M
 
 import BPL.Types
-import BPL.Instances
+import BPL.Instances ()
 
 parseBPL = do
   decls <- some declaration
@@ -24,13 +23,6 @@ consume typ = Parser $ \(t:ts) -> Right $
                                   if tokenType t == typ
                                   then Just ((), ts)
                                   else  Nothing
-
-oneOf :: [TokenType] -> Parser TokenType
-oneOf tokens = Parser $ \(t:ts) -> Right $
-  let typ = tokenType t in
-  if typ `elem` tokens
-  then Just (typ, ts)
-  else Nothing
 
 wrap :: TokenType -> TokenType -> Parser a -> Parser a
 wrap l r p = do
@@ -62,25 +54,25 @@ parseMaybe p = Parser $ \ts -> case runParser p ts of
 
 number :: Parser Expr
 number = Parser $ \(t:ts) -> case t of
-  Token TkNumber n line -> Right $ Just (IntExp $ read n, ts)
-  token -> Right Nothing
+  Token TkNumber n _ -> Right $ Just (IntExp $ read n, ts)
+  _ -> Right Nothing
 
 string :: Parser Expr
 string = Parser $ \(t:ts) -> case t of
-  Token TkStringLiteral s line -> Right $ Just (StringExp s, ts)
-  token -> Right Nothing
+  Token TkStringLiteral s _ -> Right $ Just (StringExp s, ts)
+  _ -> Right Nothing
 
 dataType :: Parser TypeSpecifier
 dataType = Parser $ \(t:ts) -> case t of
   Token TkInt _ _ -> Right $ Just (TInt, ts)
   Token TkString _ _ -> Right $ Just (TString, ts)
   Token TkVoid _ _ -> Right $ Just (TVoid, ts)
-  token -> Right Nothing
+  _ -> Right Nothing
 
 identifier :: Parser String
 identifier = Parser $ \(t:ts) -> case t of
   Token TkIdentifier s _ -> Right $ Just (s, ts)
-  token -> Right Nothing
+  _ -> Right Nothing
 
 declaration :: Parser Declaration
 declaration = do
@@ -99,10 +91,11 @@ param = do
   star <- parseMaybe $ consume TkStar
   ident <- identifier <|> fail eNoIdnt
   arr <- parseMaybe $ squares $ return ()
-  return  $ case (star, arr) of
-    (Nothing, Nothing) -> VarDec t ident
-    (Nothing, Just _)  -> ArrayDec t ident 0 -- We'll never use the length
-    (Just s, Nothing)  -> PointerDec t ident
+  case (star, arr) of
+    (Nothing, Nothing) -> return $ VarDec t ident
+    (Nothing, Just _) -> return $ ArrayDec t ident 0 -- We'll never use the length
+    (Just _, Nothing) -> return $ PointerDec t ident
+    (_, _) -> fail "attempt to declare pointer to array"
 
 funDec :: Parser FunDec
 funDec = do
@@ -119,10 +112,11 @@ localDec = do
   ident <- identifier
   len <- parseMaybe $ squares number
   consume TkSemicolon
-  return $ case (star, len) of
-    (Nothing, Nothing) -> VarDec t ident
-    (Nothing, Just (IntExp l))  -> ArrayDec t ident l
-    (Just s, Nothing)  -> PointerDec t ident
+  case (star, len) of
+    (Nothing, Nothing) -> return $ VarDec t ident
+    (Nothing, Just (IntExp l)) -> return $ ArrayDec t ident l
+    (Just _, Nothing) -> return $ PointerDec t ident
+    (_, _) -> fail "attempt to declare pointer to array"
 
 expression :: Parser Expr
 expression = assignExp

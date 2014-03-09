@@ -20,14 +20,14 @@ instance Monad Parser where
 
   fail err = Parser $ \state -> case state of
     [] -> Left $ "parse error at end of file : " ++ err
-    (Token _ _ line:ts) -> Left $ "parse error at line: " ++ show line ++ " : " ++ err
+    (Token _ _ line:_) -> Left $ "parse error at line: " ++ show line ++ " : " ++ err
 
 instance Applicative Parser where
   pure = return
   (<*>) = ap
 
 instance Alternative Parser where
-  empty = Parser $ \ts -> Right Nothing
+  empty = Parser $ \_ -> Right Nothing
   p <|> q = Parser $ \ts -> case runParser p ts of
     Left err -> Left err
     Right Nothing -> runParser q ts

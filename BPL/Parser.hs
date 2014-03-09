@@ -13,7 +13,7 @@ import BPL.Instances
 
 parseBPL = do
   decls <- some declaration
-  consume TkEOF
+  consume TkEOF <|> fail "expected EOF or declaration"
   return decls
 
 endParse :: Parser a
@@ -36,7 +36,7 @@ wrap :: TokenType -> TokenType -> Parser a -> Parser a
 wrap l r p = do
   consume l
   result <- p
-  consume r
+  consume r <|> fail ("missing " ++ show r)
   return result
 
 sep :: TokenType -> Parser a -> Parser [a]
@@ -85,17 +85,19 @@ identifier = Parser $ \(t:ts) -> case t of
 declaration :: Parser Declaration
 declaration = do
   func <- parseMaybe funDec
-  var <- parseMaybe localDec
-  case (func, var) of
-    (Just f, Nothing) -> return $ FDecl f
-    (Nothing, Just v) -> return $ VDecl v
-    (_, _) -> endParse
+  case func of
+    Just f -> return $ FDecl f
+    Nothing -> do
+      var <- parseMaybe localDec
+      case var of
+        Just v -> return $ VDecl v
+        Nothing -> endParse
 
 param :: Parser VarDec
 param = do
-  t <- dataType
+  t <- dataType <|> fail eNoType
   star <- parseMaybe $ consume TkStar
-  ident <- identifier
+  ident <- identifier <|> fail eNoIdnt
   arr <- parseMaybe $ squares $ return ()
   return  $ case (star, arr) of
     (Nothing, Nothing) -> VarDec t ident
@@ -106,7 +108,7 @@ funDec :: Parser FunDec
 funDec = do
   typ <- dataType
   name <- identifier
-  params <- parens $ (sep TkComma param) <|> (consume TkVoid >> return [])
+  params <- parens $ (consume TkVoid >> return []) <|> (sep TkComma param)
   body <- compoundStmt
   return $ FunDec typ name params body
 
@@ -144,7 +146,7 @@ assignExp :: Parser Expr
 assignExp = do
   ref <- var
   consume TkSingleEqual
-  val <- expression
+  val <- expression <|> fail eNoExpr
   return $ AssignExp ref val
 
 relOps :: M.Map TokenType RelOp
@@ -185,13 +187,13 @@ mulOp = operator mulOps
 derefExp :: Parser Expr
 derefExp = do
   consume TkStar
-  ref <- identifier
+  ref <- identifier <|> fail (eNoIdnt ++ " after * operator")
   return $ DerefExp ref
 
 addrExp :: Parser Expr
 addrExp = do
   consume TkAmpersand
-  ref <- identifier
+  ref <- identifier <|> fail (eNoIdnt ++ " after & operator")
   return $ AddrExp ref
 
 arrayExp :: Parser Expr
@@ -212,8 +214,8 @@ funcExp = do
 readExp :: Parser Expr
 readExp = do
   consume TkRead
-  consume TkLParen
-  consume TkRParen
+  consume TkLParen <|> fail "malformed read()"
+  consume TkRParen <|> fail "malformed read()"
   return ReadExp
 
 factor :: Parser Expr
@@ -268,14 +270,14 @@ compoundStmt = curlies $ do
 expressionStmt :: Parser Statement
 expressionStmt = do
   expr <- expression
-  consume TkSemicolon
+  consume TkSemicolon <|> fail eNoSemi
   return $ ExpressionStmt expr
 
 ifStmt :: Parser Statement
 ifStmt = do
   consume TkIf
-  cond <- parens expression
-  stmt <- statement
+  cond <- parens expression <|> fail eNoCond
+  stmt <- statement <|> fail eNoBody
   els <- parseMaybe elseStmt
   return $ case els of
     Nothing -> IfStmt cond stmt
@@ -284,34 +286,34 @@ ifStmt = do
 elseStmt :: Parser Statement
 elseStmt = do
   consume TkElse
-  statement
+  statement <|> fail eNoBody
 
 whileStmt :: Parser Statement
 whileStmt = do
   consume TkWhile
-  cond <- parens expression
-  stmt <- statement
+  cond <- parens expression <|> fail eNoCond
+  stmt <- statement <|> fail eNoBody
   return $ WhileStmt cond stmt
 
 returnStmt :: Parser Statement
 returnStmt = do
   consume TkReturn
   expr <- parseMaybe expression
-  consume TkSemicolon
+  consume TkSemicolon <|> fail eNoSemi
   return $ ReturnStmt expr
 
 writeStmt :: Parser Statement
 writeStmt = do
   consume TkWrite
-  expr <- parens expression
-  consume TkSemicolon
+  expr <- parens expression <|> fail eNoBody
+  consume TkSemicolon <|> fail eNoSemi
   return $ WriteStmt expr
 
 writeLnStmt :: Parser Statement
 writeLnStmt = do
   consume TkWriteLn
   parens (return ())
-  consume TkSemicolon
+  consume TkSemicolon <|> fail eNoSemi
   return WriteLnStmt
 
 errorString :: String -> Token -> String
@@ -319,3 +321,10 @@ errorString expected (Token t v l) = "expected " ++ expected
                                      ++ ", found " ++ show t
                                      ++ " with value " ++ v
                                      ++ " on line " ++ show l
+
+eNoBody = "missing body"
+eNoCond = "missing condition"
+eNoExpr = "missing expression"
+eNoSemi = "missing semicolon"
+eNoIdnt = "missing identifier"
+eNoType = "missing data type"

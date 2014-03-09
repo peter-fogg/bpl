@@ -64,7 +64,7 @@ findIdentifier = findThing isValidIdentifierChar
 
 findThing :: (Char -> Bool) -> String -> (String, String)
 findThing f s = go s ""
-  where go [] acc = ("", reverse acc)
+  where go [] acc = (reverse acc, "")
         go (c:rest) acc = if f c
                           then go rest (c:acc)
                           else (reverse acc, c:rest)

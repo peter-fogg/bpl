@@ -27,7 +27,7 @@ instance Applicative Parser where
   (<*>) = ap
 
 instance Alternative Parser where
-  empty = Parser $ \ts -> Left ""
+  empty = Parser $ \ts -> Right Nothing
   p <|> q = Parser $ \ts -> case runParser p ts of
     Left err -> Left err
     Right Nothing -> runParser q ts

@@ -16,18 +16,21 @@ parseBPL = do
   consume TkEOF
   return decls
 
+endParse :: Parser a
+endParse = Parser $ \_ -> Right Nothing
+
 consume :: TokenType -> Parser ()
 consume typ = Parser $ \(t:ts) ->
   if tokenType t == typ
-  then Right ((), ts)
-  else Left $ errorString (show typ) t
+  then Right $ Just ((), ts)
+  else Right Nothing
 
 oneOf :: [TokenType] -> Parser TokenType
 oneOf tokens = Parser $ \(t:ts) ->
   let typ = tokenType t in
   if typ `elem` tokens
-  then Right (typ, ts)
-  else Left $ "expected on of " ++ show tokens ++ ", found " ++ show typ
+  then Right $ Just (typ, ts)
+  else Right Nothing
 
 wrap :: TokenType -> TokenType -> Parser a -> Parser a
 wrap l r p = do
@@ -53,30 +56,31 @@ curlies = wrap TkLCurly TkRCurly
 
 parseMaybe :: Parser a -> Parser (Maybe a)
 parseMaybe p = Parser $ \ts -> case runParser p ts of
-  Right (result, ts') -> Right (Just result, ts')
-  Left err -> Right (Nothing, ts)
+  Right (Just (result, ts')) -> Right $ Just (Just result, ts')
+  Right Nothing -> Right $ Just (Nothing, ts)
+  Left err -> Left err
 
 number :: Parser Expr
 number = Parser $ \(t:ts) -> case t of
-  Token TkNumber n line -> Right $ (IntExp $ read n, ts)
-  token -> Left $ errorString "integer" token
+  Token TkNumber n line -> Right $ Just (IntExp $ read n, ts)
+  token -> Right Nothing
 
 string :: Parser Expr
 string = Parser $ \(t:ts) -> case t of
-  Token TkStringLiteral s line -> Right $ (StringExp s, ts)
-  token -> Left $ errorString "string" token
+  Token TkStringLiteral s line -> Right $ Just (StringExp s, ts)
+  token -> Right Nothing
 
 dataType :: Parser TypeSpecifier
 dataType = Parser $ \(t:ts) -> case t of
-  Token TkInt _ _ -> Right $ (TInt, ts)
-  Token TkString _ _ -> Right $ (TString, ts)
-  Token TkVoid _ _ -> Right $ (TVoid, ts)
-  token -> Left $ errorString "type identifier" token
+  Token TkInt _ _ -> Right $ Just (TInt, ts)
+  Token TkString _ _ -> Right $ Just (TString, ts)
+  Token TkVoid _ _ -> Right $ Just (TVoid, ts)
+  token -> Right Nothing
 
 identifier :: Parser String
 identifier = Parser $ \(t:ts) -> case t of
-  Token TkIdentifier s _ -> Right $ (s, ts)
-  token -> Left $ errorString "identifier" token
+  Token TkIdentifier s _ -> Right $ Just (s, ts)
+  token -> Right Nothing
 
 declaration :: Parser Declaration
 declaration = do
@@ -85,7 +89,7 @@ declaration = do
   case (func, var) of
     (Just f, Nothing) -> return $ FDecl f
     (Nothing, Just v) -> return $ VDecl v
-    (_, _) -> fail "expected declaration"
+    (_, _) -> endParse
 
 param :: Parser VarDec
 param = do
@@ -93,7 +97,7 @@ param = do
   star <- parseMaybe $ consume TkStar
   ident <- identifier
   arr <- parseMaybe $ squares $ return ()
-  return $ case (star, arr) of
+  return  $ case (star, arr) of
     (Nothing, Nothing) -> VarDec t ident
     (Nothing, Just _)  -> ArrayDec t ident 0 -- We'll never use the length
     (Just s, Nothing)  -> PointerDec t ident
@@ -166,8 +170,8 @@ mulOps = M.fromList [ (TkStar, OpTimes)
 operator :: M.Map TokenType a -> Parser a
 operator map = Parser $ \(t:ts) ->
   case M.lookup (tokenType t) map of
-    Just op -> Right (op, ts)
-    Nothing -> Left $ errorString "binary operator" t
+    Just op -> Right $ Just (op, ts)
+    Nothing -> Right Nothing
 
 relOp :: Parser RelOp
 relOp = operator relOps

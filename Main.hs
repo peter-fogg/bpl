@@ -17,5 +17,6 @@ main = do
         _ -> "parser_test.bpl"
   contents <- readFile testFile
   case tokenize contents >>= runParser parseBPL of
+    Right (Just (decls, _)) -> putStr $ concatMap show decls
+    Right Nothing -> putStrLn $ "PROBLEMTOWN: failed parse (no information available)"
     Left err -> putStrLn $ "PROBLEMTOWN: " ++ err
-    Right (decls, _) -> putStr $ concatMap show decls

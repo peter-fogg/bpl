@@ -46,7 +46,7 @@ data Token = Token { tokenType :: TokenType
                    } deriving (Eq)
 
 data Parser a = Parser {
-  runParser :: [Token] -> Either String (a, [Token])
+  runParser :: [Token] -> Either String (Maybe (a, [Token]))
   }
 
 data TypeSpecifier = TInt | TString | TVoid deriving (Show, Eq)

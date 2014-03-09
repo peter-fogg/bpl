@@ -10,11 +10,13 @@ import Control.Monad
 import BPL.Types
 
 instance Monad Parser where
-  return x = Parser $ \ts -> Right (x, ts)
+  return x = Parser $ \ts -> Right $ Just (x, ts)
 
   x >>= f = Parser $ \ts -> do
-    (result, ts') <- runParser x ts
-    runParser (f result) ts'
+    result <- runParser x ts
+    case result of
+      Nothing -> Right Nothing
+      Just (r, ts') -> runParser (f r) ts'
 
   fail err = Parser $ \state -> case state of
     [] -> Left $ "parse error at end of file : " ++ err
@@ -27,7 +29,8 @@ instance Applicative Parser where
 instance Alternative Parser where
   empty = Parser $ \ts -> Left ""
   p <|> q = Parser $ \ts -> case runParser p ts of
-    Left err -> runParser q ts
+    Left err -> Left err
+    Right Nothing -> runParser q ts
     right -> right
 
 instance Functor Parser where

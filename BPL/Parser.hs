@@ -111,7 +111,7 @@ localDec = do
   star <- parseMaybe $ consume TkStar
   ident <- identifier
   len <- parseMaybe $ squares number
-  consume TkSemicolon
+  consume TkSemicolon <|> fail eNoSemi
   case (star, len) of
     (Nothing, Nothing) -> return $ VarDec t ident
     (Nothing, Just (IntExp l)) -> return $ ArrayDec t ident l

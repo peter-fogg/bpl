@@ -1,1 +1,4 @@
 *.bpl
+*.hi
+*.o
+Main

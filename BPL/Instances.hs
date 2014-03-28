@@ -41,7 +41,7 @@ instance Functor Parser where
 instance Show Token where
   show (Token t v l) = show t ++ " \"" ++ v ++ "\"" ++ " : (line " ++ show l ++ ")"
 
-deriving instance Show Var
+deriving instance Show (Var a)
 
 indent :: Int -> String
 indent n = concat $ replicate n "| "
@@ -49,7 +49,7 @@ indent n = concat $ replicate n "| "
 class ShowIndent a where
   showIndent :: Int -> a -> String
 
-instance ShowIndent Expr where
+instance ShowIndent (Expr a) where
   showIndent n (CompExp left op right) = indent n
                                          ++ show op
                                          ++ "\n"
@@ -62,15 +62,15 @@ instance ShowIndent Expr where
                                           ++ showIndent (n+1) right
   showIndent n (IntExp i) = indent n ++ show i ++ "\n"
   showIndent n (StringExp s) = indent n ++ s ++ "\n"
-  showIndent n (VarExp ref) = indent n ++ ref ++ "\n"
-  showIndent n (DerefExp ref) = indent n ++ "Deref " ++ ref ++ "\n"
-  showIndent n (AddrExp ref) = indent n ++ "Address " ++ ref ++ "\n"
-  showIndent n (ArrayExp ref index) = indent n
+  showIndent n (VarExp ref _) = indent n ++ ref ++ "\n"
+  showIndent n (DerefExp ref _) = indent n ++ "Deref " ++ ref ++ "\n"
+  showIndent n (AddrExp ref _) = indent n ++ "Address " ++ ref ++ "\n"
+  showIndent n (ArrayExp ref index _) = indent n
                                       ++ "ArrayExp "
                                       ++ ref
                                       ++ "\n"
                                       ++ showIndent (n+1) index
-  showIndent n (FuncExp func args) = indent n
+  showIndent n (FuncExp func args _) = indent n
                                      ++ "FunCall "
                                      ++ func
                                      ++ "\n"
@@ -82,10 +82,10 @@ instance ShowIndent Expr where
                                      ++ "\n"
                                      ++ showIndent (n+1) exp
 
-instance Show Expr where
+instance Show (Expr a) where
   show = showIndent 0
 
-instance ShowIndent Statement where
+instance ShowIndent (Statement a) where
   showIndent n stmt = case stmt of
     WriteLnStmt -> indent n ++ "WriteLnStmt\n"
     WriteStmt expr -> indent n ++ "WriteStmt\n" ++ showIndent (n+1) expr
@@ -113,7 +113,7 @@ instance ShowIndent Statement where
                          Just e -> showIndent (n+1) e
                          Nothing -> ""
 
-instance Show Statement where
+instance Show (Statement a) where
   show = showIndent 0
 
 instance ShowIndent VarDec where
@@ -148,7 +148,7 @@ instance ShowIndent VarDec where
 instance Show VarDec where
   show = showIndent 0
 
-instance ShowIndent FunDec where
+instance ShowIndent (FunDec a) where
   showIndent n (FunDec typeSpec ref decls stmt) = indent n
                                                   ++ show typeSpec
                                                   ++ " "
@@ -161,9 +161,9 @@ instance ShowIndent FunDec where
                                                   ++ "Body:\n"
                                                   ++ showIndent (n+2) stmt
 
-instance Show FunDec where
+instance Show (FunDec a) where
   show = showIndent 0
 
-instance Show Declaration where
+instance Show (Declaration a) where
   show (FDecl d) = showIndent 0 d
   show (VDecl d) = showIndent 0 d

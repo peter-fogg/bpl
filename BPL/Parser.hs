@@ -52,12 +52,12 @@ parseMaybe p = Parser $ \ts -> case runParser p ts of
   Right Nothing -> Right $ Just (Nothing, ts)
   Left err -> Left err
 
-number :: Parser Expr
+number :: Parser (Expr ())
 number = Parser $ \(t:ts) -> case t of
   Token TkNumber n _ -> Right $ Just (IntExp $ read n, ts)
   _ -> Right Nothing
 
-string :: Parser Expr
+string :: Parser (Expr ())
 string = Parser $ \(t:ts) -> case t of
   Token TkStringLiteral s _ -> Right $ Just (StringExp s, ts)
   _ -> Right Nothing
@@ -74,7 +74,7 @@ identifier = Parser $ \(t:ts) -> case t of
   Token TkIdentifier s _ -> Right $ Just (s, ts)
   _ -> Right Nothing
 
-declaration :: Parser Declaration
+declaration :: Parser (Declaration ())
 declaration = do
   func <- parseMaybe funDec
   case func of
@@ -97,7 +97,7 @@ param = do
     (Just _, Nothing) -> return $ PointerDec t ident
     (_, _) -> fail "attempt to declare pointer to array"
 
-funDec :: Parser FunDec
+funDec :: Parser (FunDec ())
 funDec = do
   typ <- dataType
   name <- identifier
@@ -118,7 +118,7 @@ localDec = do
     (Just _, Nothing) -> return $ PointerDec t ident
     (_, _) -> fail "attempt to declare pointer to array"
 
-expression :: Parser Expr
+expression :: Parser (Expr ())
 expression = assignExp
              <|> derefExp
              <|> addrExp
@@ -126,7 +126,7 @@ expression = assignExp
              <|> compExp
              <|> string
 
-var :: Parser Var
+var :: Parser (Var ())
 var = do
   star <- parseMaybe $ consume TkStar
   ref <- identifier
@@ -136,7 +136,7 @@ var = do
     (Nothing, Just e) -> ArrVar ref e
     (Just _, Nothing) -> DerefVar ref
 
-assignExp :: Parser Expr
+assignExp :: Parser (Expr ())
 assignExp = do
   ref <- var
   consume TkSingleEqual
@@ -178,40 +178,40 @@ addOp = operator addOps
 mulOp :: Parser ArithOp
 mulOp = operator mulOps
 
-derefExp :: Parser Expr
+derefExp :: Parser (Expr ())
 derefExp = do
   consume TkStar
   ref <- identifier <|> fail (eNoIdnt ++ " after * operator")
-  return $ DerefExp ref
+  return $ DerefExp ref ()
 
-addrExp :: Parser Expr
+addrExp :: Parser (Expr ())
 addrExp = do
   consume TkAmpersand
   ref <- identifier <|> fail (eNoIdnt ++ " after & operator")
-  return $ AddrExp ref
+  return $ AddrExp ref ()
 
-arrayExp :: Parser Expr
+arrayExp :: Parser (Expr ())
 arrayExp = do
   ref <- identifier
   index <- squares expression
-  return $ ArrayExp ref index
+  return $ ArrayExp ref index ()
 
-varExp :: Parser Expr
-varExp = fmap VarExp identifier
+varExp :: Parser (Expr ())
+varExp = fmap (flip VarExp $ ()) identifier
 
-funcExp :: Parser Expr
+funcExp :: Parser (Expr ())
 funcExp = do
   ident <- identifier
   args <- parens $ sep TkComma expression <|> return []
-  return $ FuncExp ident args
+  return $ FuncExp ident args ()
 
-readExp :: Parser Expr
+readExp :: Parser (Expr ())
 readExp = do
   consume TkRead
   parens (return ()) <|> fail "malformed read()"
   return ReadExp
 
-factor :: Parser Expr
+factor :: Parser (Expr ())
 factor = number
          <|> funcExp
          <|> derefExp
@@ -224,16 +224,16 @@ factor = number
            expr <- factor
            return $ ArithExp (IntExp (-1)) OpTimes expr
 
-eExp :: Parser Expr
+eExp :: Parser (Expr ())
 eExp = infixParser addOp tExp ArithExp
 
-tExp :: Parser Expr
+tExp :: Parser (Expr ())
 tExp = infixParser mulOp factor ArithExp
 
-compExp :: Parser Expr
+compExp :: Parser (Expr ())
 compExp = infixParser relOp eExp CompExp
 
-infixParser :: Parser a -> Parser Expr -> (Expr -> a -> Expr -> Expr) -> Parser Expr
+infixParser :: Parser a -> Parser (Expr ()) -> ((Expr ()) -> a -> (Expr ()) -> (Expr ())) -> Parser (Expr ())
 infixParser opType exprType c = (first >>= rest) <|> first <|> exprType
   where first = exprType >>= rest
         rest left = do
@@ -241,7 +241,7 @@ infixParser opType exprType c = (first >>= rest) <|> first <|> exprType
           right <- exprType
           return $ c left op right
 
-statement :: Parser Statement
+statement :: Parser (Statement ())
 statement = compoundStmt
             <|> ifStmt
             <|> whileStmt
@@ -250,19 +250,19 @@ statement = compoundStmt
             <|> writeLnStmt
             <|> expressionStmt
 
-compoundStmt :: Parser Statement
+compoundStmt :: Parser (Statement ())
 compoundStmt = curlies $ do
   decls <- many localDec
   stmts <- many statement
   return $ CompoundStmt decls stmts
 
-expressionStmt :: Parser Statement
+expressionStmt :: Parser (Statement ())
 expressionStmt = do
   expr <- expression
   consume TkSemicolon <|> fail eNoSemi
   return $ ExpressionStmt expr
 
-ifStmt :: Parser Statement
+ifStmt :: Parser (Statement ())
 ifStmt = do
   consume TkIf
   cond <- parens expression <|> fail eNoCond
@@ -272,33 +272,33 @@ ifStmt = do
     Nothing -> IfStmt cond stmt
     Just s -> IfElseStmt cond stmt s
 
-elseStmt :: Parser Statement
+elseStmt :: Parser (Statement ())
 elseStmt = do
   consume TkElse
   statement <|> fail eNoBody
 
-whileStmt :: Parser Statement
+whileStmt :: Parser (Statement ())
 whileStmt = do
   consume TkWhile
   cond <- parens expression <|> fail eNoCond
   stmt <- statement <|> fail eNoBody
   return $ WhileStmt cond stmt
 
-returnStmt :: Parser Statement
+returnStmt :: Parser (Statement ())
 returnStmt = do
   consume TkReturn
   expr <- parseMaybe expression
   consume TkSemicolon <|> fail eNoSemi
   return $ ReturnStmt expr
 
-writeStmt :: Parser Statement
+writeStmt :: Parser (Statement ())
 writeStmt = do
   consume TkWrite
   expr <- parens expression <|> fail eNoBody
   consume TkSemicolon <|> fail eNoSemi
   return $ WriteStmt expr
 
-writeLnStmt :: Parser Statement
+writeLnStmt :: Parser (Statement ())
 writeLnStmt = do
   consume TkWriteLn
   parens (return ())

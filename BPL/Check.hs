@@ -28,7 +28,7 @@ insertMultipleSymbolTable [] symTab = symTab
 insertMultipleSymbolTable l symTab = foldl (\acc (k, v) -> insertSymbolTable k v acc) (extendSymbolTable symTab) l
 
 createSymbolTable :: [Declaration ()] -> ([Declaration SymbolTable], SymbolTable)
-createSymbolTable decls = foldl go ([], ST []) decls
+createSymbolTable = foldl go ([], ST [])
   where go (ds, symTab) decl = let (decl', symTab') = declSymTab symTab decl in (decl':ds, symTab')
 
 insertVarDec :: VarDec -> SymbolTable -> SymbolTable

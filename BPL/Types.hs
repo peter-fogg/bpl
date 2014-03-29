@@ -124,7 +124,7 @@ data Expr a = CompExp (Expr a) RelOp (Expr a)
             | DerefExp String a
             | AddrExp String a
             | ArrayExp String (Expr a) a
-            | FuncExp String [(Expr a)] a
+            | FuncExp String [Expr a] a
             | ReadExp
             | AssignExp (Var a) (Expr a)
             deriving (Eq)
@@ -139,7 +139,7 @@ data Statement a = CompoundStmt [VarDec] [Statement a]
                  | WriteLnStmt
                  deriving (Eq)
 
-data SymbolTable = ST [(M.Map String (Declaration SymbolTable))] deriving (Show)
+data SymbolTable = ST [M.Map String (Declaration SymbolTable)] deriving (Show)
 
 indent :: Int -> String
 indent n = concat $ replicate n "| "

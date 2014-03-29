@@ -196,7 +196,7 @@ arrayExp = do
   return $ ArrayExp ref index ()
 
 varExp :: Parser (Expr ())
-varExp = fmap (flip VarExp $ ()) identifier
+varExp = fmap (flip VarExp ()) identifier
 
 funcExp :: Parser (Expr ())
 funcExp = do
@@ -232,7 +232,7 @@ tExp = infixParser mulOp factor ArithExp
 compExp :: Parser (Expr ())
 compExp = infixParser relOp eExp CompExp
 
-infixParser :: Parser a -> Parser (Expr ()) -> ((Expr ()) -> a -> (Expr ()) -> (Expr ())) -> Parser (Expr ())
+infixParser :: Parser a -> Parser (Expr ()) -> (Expr () -> a -> Expr () -> Expr ()) -> Parser (Expr ())
 infixParser opType exprType c = (first >>= rest) <|> first <|> exprType
   where first = exprType >>= rest
         rest left = do

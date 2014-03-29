@@ -1,7 +1,7 @@
 module BPL.Check
        where
 
-import Control.Monad.State
+import Control.Arrow ((&&&))
 import qualified Data.Map as M
 
 import BPL.Types
@@ -17,7 +17,7 @@ extendSymbolTable :: SymbolTable -> SymbolTable
 extendSymbolTable (ST ts) = ST $ M.empty:ts
 
 insertSymbolTable :: String -> Declaration SymbolTable -> SymbolTable -> SymbolTable
-insertSymbolTable s decl (ST (t:ts)) = ST ((M.insert s decl t):ts)
+insertSymbolTable s decl (ST (t:ts)) = ST (M.insert s decl t:ts)
 
 insertSymbolTable' :: String -> Declaration SymbolTable -> SymbolTable -> SymbolTable
 insertSymbolTable' s decl symTab = insertSymbolTable s decl (extendSymbolTable symTab)
@@ -38,7 +38,7 @@ insertVarDec a@(ArrayDec _ s _) symTab = insertSymbolTable' s (VDecl a) symTab
 declSymTab :: SymbolTable -> Declaration () -> (Declaration SymbolTable, SymbolTable)
 declSymTab symTab (VDecl v) = (VDecl v, insertVarDec v symTab)
 declSymTab symTab (FDecl f@(FunDec typ s decls stmt)) = let
-  newEntries = (s, f'):(map (\dec -> (getName dec, VDecl dec)) decls)
+  newEntries = (s, f'):map (getName &&& VDecl) decls
   symTab' = insertMultipleSymbolTable newEntries symTab
   f' = FDecl $ FunDec typ s decls (stmtSymTab symTab' stmt) in
   (f', symTab')
@@ -70,7 +70,7 @@ varSymTab symTab v = case v of
 
 stmtSymTab :: SymbolTable -> Statement () -> Statement SymbolTable
 stmtSymTab symTab (CompoundStmt decls stmts) = CompoundStmt decls (map (stmtSymTab newTable) stmts)
-  where newTable = foldl (\acc x -> insertVarDec x acc) symTab decls
+  where newTable = foldl (flip insertVarDec) symTab decls
 stmtSymTab symTab (ExpressionStmt e) = ExpressionStmt (exprSymTab symTab e)
 stmtSymTab symTab (IfStmt e s) = IfStmt (exprSymTab symTab e) (stmtSymTab symTab s)
 stmtSymTab symTab (IfElseStmt e s1 s2) = IfElseStmt (exprSymTab symTab e) (stmtSymTab symTab s1) (stmtSymTab symTab s2)

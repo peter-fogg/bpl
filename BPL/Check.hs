@@ -18,6 +18,7 @@ extendSymbolTable (ST ts) = ST $ M.empty:ts
 
 insertSymbolTable :: String -> Declaration SymbolTable -> SymbolTable -> SymbolTable
 insertSymbolTable s decl (ST (t:ts)) = ST (M.insert s decl t:ts)
+insertSymbolTable _ _ (ST []) = error "insertion into empty symbol table"
 
 insertSymbolTable' :: String -> Declaration SymbolTable -> SymbolTable -> SymbolTable
 insertSymbolTable' s decl symTab = insertSymbolTable s decl (extendSymbolTable symTab)
@@ -37,7 +38,7 @@ insertVarDec a@(ArrayDec _ s _) symTab = insertSymbolTable' s (VDecl a) symTab
 -- top level declarations
 declSymTab :: SymbolTable -> Declaration () -> (Declaration SymbolTable, SymbolTable)
 declSymTab symTab (VDecl v) = (VDecl v, insertVarDec v symTab)
-declSymTab symTab (FDecl f@(FunDec typ s decls stmt)) = let
+declSymTab symTab (FDecl (FunDec typ s decls stmt)) = let
   newEntries = (s, f'):map (getName &&& VDecl) decls
   symTab' = insertMultipleSymbolTable newEntries symTab
   f' = FDecl $ FunDec typ s decls (stmtSymTab symTab' stmt) in
@@ -49,7 +50,7 @@ getName (PointerDec _ s) = s
 getName (ArrayDec _ s _) = s
 
 exprSymTab :: SymbolTable -> Expr () -> Expr SymbolTable
-exprSymTab symTab e = case e of
+exprSymTab symTab expr = case expr of
   CompExp r op l -> CompExp (exprSymTab symTab r) op (exprSymTab symTab l)
   ArithExp r op l -> ArithExp (exprSymTab symTab r) op (exprSymTab symTab l)
   IntExp i -> IntExp i
@@ -77,4 +78,4 @@ stmtSymTab symTab (IfElseStmt e s1 s2) = IfElseStmt (exprSymTab symTab e) (stmtS
 stmtSymTab symTab (WhileStmt e s) = WhileStmt (exprSymTab symTab e) (stmtSymTab symTab s)
 stmtSymTab symTab (ReturnStmt e) = ReturnStmt $ fmap (exprSymTab symTab) e
 stmtSymTab symTab (WriteStmt e) = WriteStmt (exprSymTab symTab e)
-stmtSymTab symTab WriteLnStmt = WriteLnStmt
+stmtSymTab _ WriteLnStmt = WriteLnStmt

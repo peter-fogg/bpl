@@ -24,10 +24,11 @@ insertSymbolTable' :: String -> Declaration SymbolTable -> SymbolTable -> Symbol
 insertSymbolTable' s decl symTab = insertSymbolTable s decl (extendSymbolTable symTab)
 
 insertMultipleSymbolTable :: [(String, Declaration SymbolTable)] -> SymbolTable -> SymbolTable
+insertMultipleSymbolTable [] symTab = symTab
 insertMultipleSymbolTable l symTab = foldl (\acc (k, v) -> insertSymbolTable k v acc) (extendSymbolTable symTab) l
 
-createSymbolTable :: [Declaration ()] -> [Declaration SymbolTable]
-createSymbolTable decls = fst $ foldl go ([], ST []) decls
+createSymbolTable :: [Declaration ()] -> ([Declaration SymbolTable], SymbolTable)
+createSymbolTable decls = foldl go ([], ST []) decls
   where go (ds, symTab) decl = let (decl', symTab') = declSymTab symTab decl in (decl':ds, symTab')
 
 insertVarDec :: VarDec -> SymbolTable -> SymbolTable
@@ -39,9 +40,10 @@ insertVarDec a@(ArrayDec _ s _) symTab = insertSymbolTable' s (VDecl a) symTab
 declSymTab :: SymbolTable -> Declaration () -> (Declaration SymbolTable, SymbolTable)
 declSymTab symTab (VDecl v) = (VDecl v, insertVarDec v symTab)
 declSymTab symTab (FDecl (FunDec typ s decls stmt)) = let
-  newEntries = (s, f'):map (getName &&& VDecl) decls
-  symTab' = insertMultipleSymbolTable newEntries symTab
-  f' = FDecl $ FunDec typ s decls (stmtSymTab symTab' stmt) in
+  symTab' = insertSymbolTable' s f' symTab
+  declEntries = map (getName &&& VDecl) decls
+  symTab'' = insertMultipleSymbolTable declEntries symTab'
+  f' = FDecl $ FunDec typ s decls (stmtSymTab symTab'' stmt) in
   (f', symTab')
 
 getName :: VarDec -> String

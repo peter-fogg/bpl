@@ -3,6 +3,7 @@ module Main
 
 import System.Environment (getArgs)
 
+import BPL.Check
 import BPL.Parser
 import BPL.Scanner
 import BPL.Types
@@ -15,6 +16,6 @@ main = do
         _ -> "parser_test.bpl"
   contents <- readFile testFile
   case tokenize contents >>= runParser parseBPL of
-    Right (Just (decls, _)) -> putStr $ concatMap show decls
+    Right (Just (decls, _)) -> putStr $ concatMap show $ createSymbolTable decls
     Right Nothing -> putStrLn "PROBLEMTOWN: failed parse (no information available)"
     Left err -> putStrLn $ "PROBLEMTOWN: " ++ err

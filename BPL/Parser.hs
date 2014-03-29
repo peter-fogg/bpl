@@ -8,7 +8,6 @@ import Control.Applicative
 import qualified Data.Map as M
 
 import BPL.Types
-import BPL.Instances ()
 
 parseBPL = do
   decls <- some declaration
@@ -132,9 +131,9 @@ var = do
   ref <- identifier
   index <- parseMaybe $ squares expression
   return $ case (star, index) of
-    (Nothing, Nothing) -> IdVar ref
-    (Nothing, Just e) -> ArrVar ref e
-    (Just _, Nothing) -> DerefVar ref
+    (Nothing, Nothing) -> IdVar ref ()
+    (Nothing, Just e) -> ArrVar ref e ()
+    (Just _, Nothing) -> DerefVar ref ()
 
 assignExp :: Parser (Expr ())
 assignExp = do

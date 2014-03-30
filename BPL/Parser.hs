@@ -9,6 +9,7 @@ import qualified Data.Map as M
 
 import BPL.Types
 
+parseBPL :: Parser [Declaration ()]
 parseBPL = do
   decls <- some declaration
   consume TkEOF <|> fail "expected EOF or declaration"

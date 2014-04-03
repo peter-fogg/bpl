@@ -60,8 +60,8 @@ exprSymTab symTab expr = case expr of
   IntExp i -> IntExp i
   StringExp s -> StringExp s
   VarExp s _ -> VarExp s symTab
-  DerefExp s _ -> DerefExp s symTab
-  AddrExp s _ -> AddrExp s symTab
+  DerefExp e _ -> DerefExp (exprSymTab symTab e) symTab
+  AddrExp e _ -> AddrExp (exprSymTab symTab e) symTab
   ArrayExp s e _ -> ArrayExp s (exprSymTab symTab e) symTab
   FuncExp s es _ -> FuncExp s (map (exprSymTab symTab) es) symTab
   ReadExp -> ReadExp
@@ -101,20 +101,18 @@ checkExpr (VarExp name symTab) = case tableLookup symTab name of
   Nothing -> undeclared
   Just (FDecl _) -> typeMismatch "function" "variable reference"
   Just (VDecl (VarDec typ s)) -> report s typ >> return typ
-checkExpr (DerefExp name symTab) = case tableLookup symTab name of
-  Nothing -> undeclared
-  Just (FDecl _) -> typeMismatch "pointer derefence" "function"
-  Just (VDecl (VarDec typ s)) -> case typ of
-    TIntPointer -> report ("*" ++ s) TInt >> return TInt
-    TStringPointer -> report ("*" ++ s) TString >> return TString
-    _ -> typeMismatch "pointer dereference" (show typ)
-checkExpr (AddrExp name symTab) = case tableLookup symTab name of
-  Nothing -> undeclared
-  Just (FDecl _) -> typeMismatch "address" "function"
-  Just (VDecl (VarDec typ s)) -> case typ of
-    TInt -> report ("&" ++ s) TIntPointer >> return TIntPointer
-    TString -> report ("&" ++ s) TStringPointer >> return TStringPointer
-    _ -> typeMismatch "address reference" (show typ)
+checkExpr (DerefExp expr symTab) = do
+  etype <- checkExpr expr
+  case etype of
+    TIntPointer -> return TInt
+    TStringPointer -> return TString
+    _ -> typeMismatch "dereference" (show etype)
+checkExpr (AddrExp expr symTab) = do
+  etype <- checkExpr expr
+  case etype of
+    TInt -> return TIntPointer
+    TString -> return TStringPointer
+    _ -> typeMismatch "address reference" (show etype)
 checkExpr (ArrayExp s expr symTab) = do
   etype <- checkExpr expr
   unless (etype == TInt) $ typeMismatch "TInt" (show etype)

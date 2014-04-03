@@ -124,8 +124,8 @@ data Expr a = CompExp (Expr a) RelOp (Expr a)
             | IntExp Int
             | StringExp String
             | VarExp String a
-            | DerefExp String a
-            | AddrExp String a
+            | DerefExp (Expr a) a
+            | AddrExp (Expr a) a
             | ArrayExp String (Expr a) a
             | FuncExp String [Expr a] a
             | ReadExp
@@ -164,8 +164,8 @@ instance ShowIndent (Expr a) where
   showIndent n (IntExp i) = indent n ++ show i ++ "\n"
   showIndent n (StringExp s) = indent n ++ s ++ "\n"
   showIndent n (VarExp ref _) = indent n ++ ref ++ "\n"
-  showIndent n (DerefExp ref _) = indent n ++ "Deref " ++ ref ++ "\n"
-  showIndent n (AddrExp ref _) = indent n ++ "Address " ++ ref ++ "\n"
+  showIndent n (DerefExp ref _) = indent n ++ "Deref " ++ showIndent (n+1) ref ++ "\n"
+  showIndent n (AddrExp ref _) = indent n ++ "Address " ++ showIndent (n+1) ref ++ "\n"
   showIndent n (ArrayExp ref index _) = indent n
                                       ++ "ArrayExp "
                                       ++ ref

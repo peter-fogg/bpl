@@ -198,13 +198,17 @@ mulOp = operator mulOps
 derefExp :: Parser (Expr ())
 derefExp = do
   consume TkStar
-  ref <- identifier <|> fail (eNoIdnt ++ " after * operator")
+  ref <- expression <|> fail (eNoExpr ++ " after * operator")
   return $ DerefExp ref ()
 
 addrExp :: Parser (Expr ())
 addrExp = do
   consume TkAmpersand
-  ref <- identifier <|> fail (eNoIdnt ++ " after & operator")
+  ref <- expression <|> fail (eNoExpr ++ " after & operator")
+  case ref of
+    VarExp _ _ -> return ()
+    ArrayExp _ _ _ -> return ()
+    _ -> fail "can only take address of variables and array references"
   return $ AddrExp ref ()
 
 arrayExp :: Parser (Expr ())

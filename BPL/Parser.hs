@@ -1,6 +1,7 @@
 module BPL.Parser
        (
          parseBPL
+       , extractParseResult
        )
        where
 
@@ -8,6 +9,11 @@ import Control.Applicative
 import qualified Data.Map as M
 
 import BPL.Types
+
+extractParseResult :: Either String (Maybe (a, [Token])) -> Either String a
+extractParseResult r = r >>= go
+  where go Nothing = Left "failed parse (no information available)"
+        go (Just (result, _)) = Right result
 
 parseBPL :: Parser [Declaration ()]
 parseBPL = do
@@ -85,17 +91,25 @@ declaration = do
         Just v -> return $ VDecl v
         Nothing -> endParse
 
+typeSpec :: TypeSpecifier -> Maybe () -> Maybe Int -> TypeSpecifier
+typeSpec TInt Nothing Nothing = TInt
+typeSpec TString Nothing Nothing = TString
+typeSpec TInt (Just _) Nothing = TIntPointer
+typeSpec TString (Just _) Nothing = TStringPointer
+typeSpec TInt Nothing (Just l) = TIntArray l
+typeSpec TString Nothing (Just l) = TStringArray l
+typeSpec _ _ _ = TVoid
+
 param :: Parser VarDec
 param = do
   t <- dataType <|> fail eNoType
   star <- parseMaybe $ consume TkStar
   ident <- identifier <|> fail eNoIdnt
-  arr <- parseMaybe $ squares $ return ()
-  case (star, arr) of
-    (Nothing, Nothing) -> return $ VarDec t ident
-    (Nothing, Just _) -> return $ ArrayDec t ident 0 -- We'll never use the length
-    (Just _, Nothing) -> return $ PointerDec t ident
-    (_, _) -> fail "attempt to declare pointer to array"
+  arr <- parseMaybe $ squares $ return 0
+  let typ = typeSpec t star arr
+  if typ == TVoid
+    then fail "incorrect type in declaration"
+    else return $ VarDec typ ident
 
 funDec :: Parser (FunDec ())
 funDec = do
@@ -108,15 +122,18 @@ funDec = do
 localDec :: Parser VarDec
 localDec = do
   t <- dataType
+
   star <- parseMaybe $ consume TkStar
   ident <- identifier
   len <- parseMaybe $ squares number
-  consume TkSemicolon <|> fail eNoSemi
-  case (star, len) of
-    (Nothing, Nothing) -> return $ VarDec t ident
-    (Nothing, Just (IntExp l)) -> return $ ArrayDec t ident l
-    (Just _, Nothing) -> return $ PointerDec t ident
-    (_, _) -> fail "attempt to declare pointer to array"
+  consume TkSemicolon
+  let len' = case len of
+        Just (IntExp n) -> Just n
+        _ -> Nothing
+      typ = typeSpec t star len'
+  if typ == TVoid
+    then fail "incorrect type in declaration"
+    else return $ VarDec typ ident
 
 expression :: Parser (Expr ())
 expression = assignExp

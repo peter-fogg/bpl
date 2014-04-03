@@ -85,12 +85,15 @@ instance Functor Parser where
     result <- x
     return (f result)
 
-data TypeSpecifier = TInt | TString | TVoid deriving (Show, Eq)
+data TypeSpecifier = TInt
+                   | TString
+                   | TIntPointer
+                   | TStringPointer
+                   | TIntArray Int
+                   | TStringArray Int
+                   | TVoid deriving (Show, Eq)
 
-data VarDec = VarDec TypeSpecifier String
-            | PointerDec TypeSpecifier String
-            | ArrayDec TypeSpecifier String Int
-            deriving (Eq)
+data VarDec = VarDec TypeSpecifier String deriving (Eq)
 
 data FunDec a = FunDec TypeSpecifier String [VarDec] (Statement a)
               deriving (Eq)
@@ -226,25 +229,6 @@ instance ShowIndent VarDec where
                                      ++ indent (n+1)
                                      ++ s
                                      ++ "\n"
-  showIndent n (PointerDec typeSpec s) = indent n
-                                         ++ "PointerDec\n"
-                                         ++ indent (n+1)
-                                         ++ show typeSpec
-                                         ++ "\n"
-                                         ++ indent (n+1)
-                                         ++ s
-                                         ++ "\n"
-  showIndent n (ArrayDec typeSpec s l) = indent n
-                                         ++ "Arraydec\n"
-                                         ++ indent (n+1)
-                                         ++ show typeSpec
-                                         ++ "\n"
-                                         ++ indent (n+1)
-                                         ++ s
-                                         ++ "\n"
-                                         ++ indent (n+1)
-                                         ++ show l
-                                         ++ "\n"
 
 instance Show VarDec where
   show = showIndent 0

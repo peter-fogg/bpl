@@ -1,6 +1,8 @@
 module Main
        where
 
+import Control.Monad.Trans.Maybe
+import Control.Monad.Writer
 import System.Environment (getArgs)
 
 import BPL.Check
@@ -15,7 +17,8 @@ main = do
         (fname:_) -> fname
         _ -> "parser_test.bpl"
   contents <- readFile testFile
-  case tokenize contents >>= runParser parseBPL of
-    Right (Just (decls, _)) -> putStr $ show . snd $ createSymbolTable decls
-    Right Nothing -> putStrLn "PROBLEMTOWN: failed parse (no information available)"
+  case tokenize contents >>= extractParseResult . runParser parseBPL of
     Left err -> putStrLn $ "PROBLEMTOWN: " ++ err
+    Right decls -> case runWriter . runMaybeT . mapM checkDecl . fst . createSymbolTable $ decls of
+      (Just _, output) -> putStrLn output >> putStrLn "A well-typed program!"
+      (Nothing, output) -> putStrLn output

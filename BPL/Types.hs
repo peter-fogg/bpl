@@ -1,9 +1,13 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 module BPL.Types
        where
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.State
 import Data.Map as M
+import Text.Printf (printf)
 
 data TokenType = TkIdentifier
                | TkStringLiteral
@@ -143,6 +147,30 @@ data Statement a = CompoundStmt [VarDec] [Statement a]
                  deriving (Eq)
 
 data SymbolTable = ST [M.Map String (Declaration SymbolTable)] deriving (Show)
+
+data CodeGenState = CodeGenState {
+  labels :: Int
+  , code :: [String]
+  } deriving (Show)
+
+type Label = String
+
+type OpCode = String
+
+type Op = OpCode -> OpCode -> CodeGen ()
+
+type Register = String
+
+type CodeGen = State CodeGenState
+
+-- this is bad and i should feel bad; i don't
+instance Num (Register -> String) where
+  fromInteger n s = printf "%d(%s)" n s
+  (+) = undefined
+  (*) = undefined
+  abs = undefined
+  signum = undefined
+  negate f = \s -> "-" ++ f s
 
 indent :: Int -> String
 indent n = concat $ replicate n "| "

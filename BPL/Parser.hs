@@ -100,7 +100,7 @@ typeSpec TInt Nothing (Just l) = TIntArray l
 typeSpec TString Nothing (Just l) = TStringArray l
 typeSpec _ _ _ = TVoid
 
-param :: Parser VarDec
+param :: Parser (VarDec ())
 param = do
   t <- dataType <|> fail eNoType
   star <- parseMaybe $ consume TkStar
@@ -109,7 +109,7 @@ param = do
   let typ = typeSpec t star arr
   if typ == TVoid
     then fail "incorrect type in declaration"
-    else return $ VarDec typ ident
+    else return $ VarDec typ ident ()
 
 funDec :: Parser (FunDec ())
 funDec = do
@@ -119,7 +119,7 @@ funDec = do
   body <- compoundStmt
   return $ FunDec typ name params body
 
-localDec :: Parser VarDec
+localDec :: Parser (VarDec ())
 localDec = do
   t <- dataType
 
@@ -133,7 +133,7 @@ localDec = do
       typ = typeSpec t star len'
   if typ == TVoid
     then fail "incorrect type in declaration"
-    else return $ VarDec typ ident
+    else return $ VarDec typ ident ()
 
 expression :: Parser (Expr ())
 expression = assignExp

@@ -97,12 +97,12 @@ data TypeSpecifier = TInt
                    | TStringArray Int
                    | TVoid deriving (Show, Eq)
 
-data VarDec = VarDec TypeSpecifier String deriving (Eq)
+data VarDec a = VarDec TypeSpecifier String a deriving (Eq)
 
-data FunDec a = FunDec TypeSpecifier String [VarDec] (Statement a)
+data FunDec a = FunDec TypeSpecifier String [VarDec a] (Statement a)
               deriving (Eq)
 
-data Declaration a = FDecl (FunDec a) | VDecl VarDec
+data Declaration a = FDecl (FunDec a) | VDecl (VarDec a)
                    deriving (Eq)
 
 data RelOp = OpLeq
@@ -136,7 +136,7 @@ data Expr a = CompExp (Expr a) RelOp (Expr a)
             | AssignExp (Var a) (Expr a)
             deriving (Eq)
 
-data Statement a = CompoundStmt [VarDec] [Statement a]
+data Statement a = CompoundStmt [VarDec a] [Statement a]
                  | ExpressionStmt (Expr a)
                  | IfStmt (Expr a) (Statement a)
                  | IfElseStmt (Expr a) (Statement a) (Statement a)
@@ -248,17 +248,17 @@ instance ShowIndent (Statement a) where
 instance Show (Statement a) where
   show = showIndent 0
 
-instance ShowIndent VarDec where
-  showIndent n (VarDec typeSpec s) = indent n
-                                     ++ "VarDec\n"
-                                     ++ indent (n+1)
-                                     ++ show typeSpec
-                                     ++ "\n"
-                                     ++ indent (n+1)
-                                     ++ s
-                                     ++ "\n"
+instance ShowIndent (VarDec a) where
+  showIndent n (VarDec typeSpec s _) = indent n
+                                       ++ "VarDec\n"
+                                       ++ indent (n+1)
+                                       ++ show typeSpec
+                                       ++ "\n"
+                                       ++ indent (n+1)
+                                       ++ s
+                                       ++ "\n"
 
-instance Show VarDec where
+instance Show (VarDec a) where
   show = showIndent 0
 
 instance ShowIndent (FunDec a) where

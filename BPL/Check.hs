@@ -34,24 +34,29 @@ createSymbolTable :: [Declaration ()] -> ([Declaration SymbolTable], SymbolTable
 createSymbolTable = foldl' go ([], ST [])
   where go (ds, symTab) decl = let (decl', symTab') = declSymTab symTab decl in (decl':ds, symTab')
 
-insertVarDec :: VarDec -> SymbolTable -> SymbolTable
-insertVarDec v@(VarDec _ s) = insertSymbolTable' s (VDecl v)
+insertVarDec :: VarDec SymbolTable -> SymbolTable -> SymbolTable
+insertVarDec v@(VarDec _ s _) = insertSymbolTable' s (VDecl v)
+
+convertVarDec :: SymbolTable ->VarDec () -> VarDec SymbolTable
+convertVarDec symTab (VarDec t s _) = VarDec t s symTab
 
 -- top level declarations
 declSymTab :: SymbolTable -> Declaration () -> (Declaration SymbolTable, SymbolTable)
-declSymTab symTab (VDecl v) = (VDecl v, insertVarDec v symTab)
+declSymTab symTab (VDecl v) = let v' = convertVarDec symTab v in
+  (VDecl v', insertVarDec v' symTab)
 declSymTab symTab (FDecl (FunDec typ s decls stmt)) = let
   symTab' = insertSymbolTable' s f' symTab
-  declEntries = map (getName &&& VDecl) decls
+  decls' = map (convertVarDec symTab) decls
+  declEntries = map (getName &&& VDecl) decls'
   symTab'' = insertMultipleSymbolTable declEntries symTab'
-  f' = FDecl $ FunDec typ s decls (stmtSymTab symTab'' stmt) in
+  f' = FDecl $ FunDec typ s decls' (stmtSymTab symTab'' stmt) in
   (f', symTab')
 
-getName :: VarDec -> String
-getName (VarDec _ s) = s
+getName :: VarDec a-> String
+getName (VarDec _ s _) = s
 
-getType :: VarDec -> TypeSpecifier
-getType (VarDec t _) = t
+getType :: VarDec a -> TypeSpecifier
+getType (VarDec t _ _) = t
 
 exprSymTab :: SymbolTable -> Expr () -> Expr SymbolTable
 exprSymTab symTab expr = case expr of
@@ -74,8 +79,9 @@ varSymTab symTab v = case v of
   DerefVar s _ -> DerefVar s symTab
 
 stmtSymTab :: SymbolTable -> Statement () -> Statement SymbolTable
-stmtSymTab symTab (CompoundStmt decls stmts) = CompoundStmt decls (map (stmtSymTab newTable) stmts)
-  where newTable = foldl' (flip insertVarDec) symTab decls
+stmtSymTab symTab (CompoundStmt decls stmts) = CompoundStmt decls' (map (stmtSymTab newTable) stmts)
+  where newTable = foldl' (flip insertVarDec) symTab decls'
+        decls' = map (convertVarDec symTab) decls
 stmtSymTab symTab (ExpressionStmt e) = ExpressionStmt (exprSymTab symTab e)
 stmtSymTab symTab (IfStmt e s) = IfStmt (exprSymTab symTab e) (stmtSymTab symTab s)
 stmtSymTab symTab (IfElseStmt e s1 s2) = IfElseStmt (exprSymTab symTab e) (stmtSymTab symTab s1) (stmtSymTab symTab s2)
@@ -100,7 +106,7 @@ checkExpr (StringExp s) = report s TString >> return TString
 checkExpr (VarExp name symTab) = case tableLookup symTab name of
   Nothing -> undeclared
   Just (FDecl _) -> typeMismatch "function" "variable reference"
-  Just (VDecl (VarDec typ s)) -> report s typ >> return typ
+  Just (VDecl (VarDec typ s _)) -> report s typ >> return typ
 checkExpr (DerefExp expr symTab) = do
   etype <- checkExpr expr
   case etype of
@@ -117,7 +123,7 @@ checkExpr (ArrayExp s expr symTab) = do
   etype <- checkExpr expr
   unless (etype == TInt) $ typeMismatch "TInt" (show etype)
   case tableLookup symTab s of
-    Just (VDecl (VarDec typ _)) -> case typ of
+    Just (VDecl (VarDec typ _ _)) -> case typ of
       TIntArray _ -> report (s ++ "[]") TInt >> return TInt
       TStringArray _ -> report (s ++ "[]") TString >> return TString
       _ -> typeMismatch "array reference" (show typ)
@@ -145,11 +151,11 @@ checkVar :: Var SymbolTable -> MaybeT (Writer String) TypeSpecifier
 checkVar (IdVar name symTab) = case tableLookup symTab name of
   Nothing -> undeclared
   Just (FDecl _) -> typeMismatch "variable assigment" "function"
-  Just (VDecl (VarDec typ _)) -> report name typ >> return typ
+  Just (VDecl (VarDec typ _ _)) -> report name typ >> return typ
 checkVar (ArrVar name expr symTab) = case tableLookup symTab name of
   Nothing -> undeclared
   Just (FDecl _) -> typeMismatch "array assignment" "function"
-  Just (VDecl (VarDec typ _)) -> case typ of
+  Just (VDecl (VarDec typ _ _)) -> case typ of
     TIntArray _ -> checkArray TInt name
     TStringArray _ -> checkArray TString name
     _ -> typeMismatch "array assignment" "non-array"
@@ -161,7 +167,7 @@ checkVar (ArrVar name expr symTab) = case tableLookup symTab name of
 checkVar (DerefVar name symTab) = case tableLookup symTab name of
   Nothing -> undeclared
   Just (FDecl _) -> typeMismatch "pointer dereference" "function"
-  Just (VDecl (VarDec typ _)) -> case typ of
+  Just (VDecl (VarDec typ _ _)) -> case typ of
     TIntPointer -> report ("*" ++ name) TInt >> return TInt
     TStringPointer -> report ("*" ++ name) TString >> return TString
     _ -> typeMismatch "pointer dereference" (show typ)

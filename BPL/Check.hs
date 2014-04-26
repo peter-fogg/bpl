@@ -37,8 +37,8 @@ createSymbolTable = foldl' go ([], ST [])
 insertVarDec :: VarDec SymbolTable -> SymbolTable -> SymbolTable
 insertVarDec v@(VarDec _ s _) = insertSymbolTable' s (VDecl v)
 
-convertVarDec :: SymbolTable ->VarDec () -> VarDec SymbolTable
-convertVarDec symTab (VarDec t s _) = VarDec t s symTab
+convertVarDec :: a -> VarDec b -> VarDec a
+convertVarDec x (VarDec t s _) = VarDec t s x
 
 -- top level declarations
 declSymTab :: SymbolTable -> Declaration () -> (Declaration SymbolTable, SymbolTable)

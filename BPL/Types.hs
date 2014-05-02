@@ -146,7 +146,7 @@ data Statement a = CompoundStmt [VarDec] [Statement a]
                  | WriteLnStmt
                  deriving (Eq)
 
-data SymbolTable = ST [M.Map String (Declaration SymbolTable)] deriving (Show)
+data SymbolTable = ST [M.Map String (Declaration SymbolTable, Maybe Int)] deriving (Show)
 
 data CodeGenState = CodeGenState {
   labels :: Int

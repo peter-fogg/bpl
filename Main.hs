@@ -2,7 +2,9 @@ module Main
        where
 
 import Control.Monad.Trans.Maybe
+import Control.Monad.State
 import Control.Monad.Writer
+import qualified Data.Map as M
 import System.Environment (getArgs)
 
 import BPL.Check
@@ -19,6 +21,6 @@ main = do
   contents <- readFile testFile
   case tokenize contents >>= extractParseResult . runParser parseBPL of
     Left err -> putStrLn $ "PROBLEMTOWN: " ++ err
-    Right decls -> case runWriter . runMaybeT . mapM checkDecl . fst . createSymbolTable $ decls of
-      (Just _, output) -> putStrLn output >> putStrLn "A well-typed program!"
-      (Nothing, output) -> putStrLn output
+    Right decls -> case flip runState (M.empty, 0) . runWriterT . runMaybeT . mapM checkDecl . fst . createSymbolTable $ decls of
+      ((Just ast, output), (table, _)) -> putStrLn output >> putStrLn "A well-typed program!" >> print table
+      ((Nothing, output), _) -> putStrLn output

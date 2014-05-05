@@ -2,6 +2,7 @@ module BPL.Check
        where
 
 import Control.Arrow ((&&&))
+import Control.Monad.State
 import Control.Monad.Trans.Maybe
 import Control.Monad.Writer
 import Data.List (foldl')
@@ -84,7 +85,9 @@ stmtSymTab symTab (ReturnStmt e) = ReturnStmt $ fmap (exprSymTab symTab) e
 stmtSymTab symTab (WriteStmt e) = WriteStmt (exprSymTab symTab e)
 stmtSymTab _ WriteLnStmt = WriteLnStmt
 
-checkBinaryExp :: Expr SymbolTable -> Expr SymbolTable -> MaybeT (Writer String) TypeSpecifier
+type TypeCheck a = MaybeT (WriterT String (State (M.Map String String, Int))) a
+
+checkBinaryExp :: Expr SymbolTable -> Expr SymbolTable -> TypeCheck TypeSpecifier
 checkBinaryExp l r = do
   ltype <- checkExpr l
   rtype <- checkExpr r
@@ -92,11 +95,11 @@ checkBinaryExp l r = do
     then report "binary operation" TInt >> return TInt
     else typeMismatch (show ltype) (show rtype)
 
-checkExpr :: Expr SymbolTable -> MaybeT (Writer String) TypeSpecifier
+checkExpr :: Expr SymbolTable -> TypeCheck TypeSpecifier
 checkExpr (CompExp l _ r) = checkBinaryExp l r
 checkExpr (ArithExp l _ r) = checkBinaryExp l r
 checkExpr (IntExp i) = report i TInt >> return TInt
-checkExpr (StringExp s) = report s TString >> return TString
+checkExpr (StringExp s) = report s TString >> labelString s >> return TString
 checkExpr (VarExp name symTab) = case tableLookup symTab name of
   Nothing -> undeclared
   Just ((FDecl _), _) -> typeMismatch "function" "variable reference"
@@ -141,7 +144,7 @@ checkExpr (AssignExp var expr) = do
     then return vtype
     else typeMismatch (show vtype) (show etype)
 
-checkVar :: Var SymbolTable -> MaybeT (Writer String) TypeSpecifier
+checkVar :: Var SymbolTable -> TypeCheck TypeSpecifier
 checkVar (IdVar name symTab) = case tableLookup symTab name of
   Nothing -> undeclared
   Just (FDecl _, _) -> typeMismatch "variable assigment" "function"
@@ -166,7 +169,7 @@ checkVar (DerefVar name symTab) = case tableLookup symTab name of
     TStringPointer -> report ("*" ++ name) TString >> return TString
     _ -> typeMismatch "pointer dereference" (show typ)
 
-checkStmt :: Statement SymbolTable -> MaybeT (Writer String) TypeSpecifier
+checkStmt :: Statement SymbolTable -> TypeCheck TypeSpecifier
 checkStmt (CompoundStmt _ stmts) = do
   types <- mapM checkStmt stmts
   let types' = filter (/= TVoid) types
@@ -197,18 +200,24 @@ checkStmt (ReturnStmt expr) = maybe (return TVoid) checkExpr expr
 checkStmt (WriteStmt expr) = checkExpr expr >> return TVoid
 checkStmt WriteLnStmt = return TVoid
 
-checkDecl :: Declaration SymbolTable -> MaybeT (Writer String) TypeSpecifier
+checkDecl :: Declaration SymbolTable -> TypeCheck TypeSpecifier
 checkDecl (VDecl _) = return TVoid
 checkDecl (FDecl (FunDec t _ _ stmt)) = do
   stype <- checkStmt stmt
   unless (stype == t) $ typeMismatch (show t) (show stype)
   return TVoid
 
-report :: (Show a) => a -> TypeSpecifier -> MaybeT (Writer String) ()
+report :: (Show a) => a -> TypeSpecifier -> TypeCheck ()
 report e typ = lift $ tell $ "assigning " ++ show e ++ " type " ++ show typ ++ "\n"
 
-typeMismatch :: String -> String -> MaybeT (Writer String) a
+typeMismatch :: String -> String -> TypeCheck a
 typeMismatch t1 t2 = tell ("type mismatch: " ++  t1 ++ ", " ++ t2) >> MaybeT (return Nothing)
 
-undeclared :: MaybeT (Writer String) a
+undeclared :: TypeCheck a
 undeclared = tell "undeclared variable" >> MaybeT (return Nothing)
+
+labelString :: String -> TypeCheck ()
+labelString s = lift . lift $ modify (\(m, i) -> case M.lookup s m of
+                                         Nothing -> (M.insert s (".S" ++ show i) m, succ i)
+                                         _ -> (m, i)
+                                     )

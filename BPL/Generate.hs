@@ -34,6 +34,15 @@ writeLn = do
   movl (($.)0) eax
   call printf
 
+localVarLength :: Int -> Statement a -> Int
+localVarLength i stmt = case stmt of
+  CompoundStmt decls stmts -> foldl max i' (map (localVarLength i') stmts)
+    where i' = i + sum (map (\(VarDec _ i _) -> i) decls)
+  IfStmt _ ifStmt -> localVarLength i ifStmt
+  IfElseStmt _ ifStmt elseStmt -> max (localVarLength i ifStmt) (localVarLength i elseStmt)
+  WhileStmt _ whileStmt -> localVarLength i whileStmt
+  _ -> i
+
 testCode :: CodeGen ()
 testCode = do
   writeHeader

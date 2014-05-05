@@ -8,6 +8,7 @@ import qualified Data.Map as M
 import System.Environment (getArgs)
 
 import BPL.Check
+import BPL.Generate
 import BPL.Parser
 import BPL.Scanner
 import BPL.Types

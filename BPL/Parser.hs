@@ -109,7 +109,7 @@ param = do
   let typ = typeSpec t star arr
   if typ == TVoid
     then fail "incorrect type in declaration"
-    else return $ VarDec typ ident
+    else return $ VarDec typ 8 ident
 
 funDec :: Parser (FunDec ())
 funDec = do
@@ -122,7 +122,6 @@ funDec = do
 localDec :: Parser VarDec
 localDec = do
   t <- dataType
-
   star <- parseMaybe $ consume TkStar
   ident <- identifier
   len <- parseMaybe $ squares number
@@ -133,7 +132,12 @@ localDec = do
       typ = typeSpec t star len'
   if typ == TVoid
     then fail "incorrect type in declaration"
-    else return $ VarDec typ ident
+    else return $ VarDec typ (case typ of
+                              TIntArray i -> 8*i
+                              TStringArray i -> 8*i
+                              TVoid -> 0
+                              _ -> 8)
+         ident
 
 expression :: Parser (Expr ())
 expression = assignExp

@@ -97,7 +97,7 @@ data TypeSpecifier = TInt
                    | TStringArray Int
                    | TVoid deriving (Show, Eq)
 
-data VarDec = VarDec TypeSpecifier String deriving (Eq)
+data VarDec = VarDec TypeSpecifier Int String deriving (Eq)
 
 data FunDec a = FunDec TypeSpecifier String [VarDec] (Statement a)
               deriving (Eq)
@@ -249,14 +249,14 @@ instance Show (Statement a) where
   show = showIndent 0
 
 instance ShowIndent VarDec where
-  showIndent n (VarDec typeSpec s) = indent n
-                                     ++ "VarDec\n"
-                                     ++ indent (n+1)
-                                     ++ show typeSpec
-                                     ++ "\n"
-                                     ++ indent (n+1)
-                                     ++ s
-                                     ++ "\n"
+  showIndent n (VarDec typeSpec i s) = indent n
+                                       ++ "VarDec\n"
+                                       ++ indent (n+1)
+                                       ++ show typeSpec
+                                       ++ " " ++ show i ++ "\n"
+                                       ++ indent (n+1)
+                                       ++ s
+                                       ++ "\n"
 
 instance Show VarDec where
   show = showIndent 0

@@ -14,6 +14,26 @@ writeHeader = do
   write ".text"
   write ".globl main"
 
+writeInteger :: CodeGen ()
+writeInteger = do
+  movl eax esi
+  movq writeIntString rdi
+  movl (($.)0) eax
+  call printf
+
+writeString :: String -> CodeGen ()
+writeString addr = do
+  movl addr esi
+  movq writeStringString rdi
+  movl (($.)0) eax
+  call printf
+
+writeLn :: CodeGen ()
+writeLn = do
+  movq writeLnString rdi
+  movl (($.)0) eax
+  call printf
+
 testCode :: CodeGen ()
 testCode = do
   writeHeader

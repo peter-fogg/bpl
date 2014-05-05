@@ -17,11 +17,17 @@ infixr 0 -:
 (-:) :: Label -> CodeGen a -> CodeGen a
 l -: c = write (l ++ ":") >> c
 
+infixr 0 #
+(#) :: CodeGen a -> String -> CodeGen ()
+c # s = c >> modify (\c' -> case code c' of
+                        x:xs -> c' { code = (x ++ "\t# " ++ s):xs }
+                        _ -> c')
+
 ($.) :: Int -> String
 ($.) n = "$" ++ show n
 
 write :: String -> CodeGen ()
-write s = modify (\c -> c { code = code c ++ [s]})
+write s = modify (\c -> c { code = s:code c})
 
 gen :: OpCode -> String -> String -> CodeGen ()
 gen op src dest = write $ T.printf "\t%s %s, %s" op src dest
@@ -68,7 +74,7 @@ ret :: CodeGen ()
 ret = write "\tret"
 
 generateCode :: CodeGen () -> String
-generateCode cg = intercalate "\n" c
+generateCode cg = intercalate "\n" $ reverse c
   where (CodeGenState _ c) = execState cg initialState
         initialState = CodeGenState 0 []
 

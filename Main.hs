@@ -8,6 +8,7 @@ import qualified Data.Map as M
 import System.Environment (getArgs)
 
 import BPL.Check
+import BPL.DSL
 import BPL.Generate
 import BPL.Parser
 import BPL.Scanner
@@ -22,6 +23,7 @@ main = do
   contents <- readFile testFile
   case tokenize contents >>= extractParseResult . runParser parseBPL of
     Left err -> putStrLn $ "PROBLEMTOWN: " ++ err
-    Right decls -> case flip runState (M.empty, 0) . runWriterT . runMaybeT . mapM checkDecl . fst . createSymbolTable $ decls of
-      ((Just ast, output), (table, _)) -> putStrLn output >> putStrLn "A well-typed program!" >> print table
+    Right decls -> case flip runState (M.empty, 0) . runWriterT . runMaybeT . mapM checkDecl $ decls' of
+      ((Just ast, output), (table, _)) -> putStrLn $ generateCode $ genBPL decls' table
       ((Nothing, output), _) -> putStrLn output
+      where decls' = fst . createSymbolTable $ decls

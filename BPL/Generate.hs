@@ -33,6 +33,7 @@ localVarLength i stmt = case stmt of
   _ -> i
 
 genExpr :: M.Map String String -> Expr SymbolTable -> CodeGen ()
+genExpr _ (IntExp i) = movl (($.)i) eax # "load number"
 genExpr t (StringExp s) = case M.lookup s t of
   Nothing -> error "string wasn't assigned a label"
   Just l -> movl ("$"++l) eax
@@ -40,7 +41,10 @@ genExpr _ _ = return ()
 
 genStmt :: M.Map String String -> Statement SymbolTable -> CodeGen ()
 genStmt t (CompoundStmt _ stmts) = mapM_ (genStmt t) stmts
-genStmt t (WriteStmt expr) = genExpr t expr >> writeStmt writeStringString
+genStmt t (ExpressionStmt e) = genExpr t e
+-- TODO: this is wrong; array references to string arrays will fail (wrong format string)
+genStmt t (WriteStmt expr) = genExpr t expr >> writeStmt (case expr of StringExp _ -> writeStringString
+                                                                       _ -> writeIntString)
 genStmt _ WriteLnStmt = writeStmt writeLnString
 genStmt _ _ = return ()
 
@@ -67,6 +71,7 @@ genBPL decls t = do
   allocateStrings t
   writeHeader
   mapM_ (genDecl t) (reverse fdecls)
+  write "\n"
   where (vdecls, fdecls) = foldl go ([], []) decls
         go (vs, fs) f@(FDecl _) = (vs, f:fs)
         go (vs, fs) v@(VDecl _) = (v:vs, fs)

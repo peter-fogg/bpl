@@ -33,6 +33,24 @@ localVarLength i stmt = case stmt of
   _ -> i
 
 genExpr :: M.Map String String -> Expr SymbolTable -> CodeGen ()
+genExpr t (ArithExp l op r) = do
+  genExpr t l # "generate left side"
+  push rax
+  genExpr t r # "generate right side"
+  case op of
+    OpPlus -> addq (0 rsp) rax # "add the two operands"
+    OpMinus -> do
+      sub rax (0 rsp) # "subtract the two operands"
+      movq (0 rsp) rax # "put value in accumulator"
+    OpTimes -> imul (0 rsp) rax # "multiply the two operands"
+    _ -> do
+      movq rax rbp # "put divisor in rbp"
+      movq (0 rsp) rax # "put dividend into rax"
+      cltq # "lol"
+      cqto
+      idivl ebp # "wat"
+  when (op == OpMod) $ movl edx eax # "put remainder into accumulator"
+  addq (($.)8) rsp # "pop the stack"
 genExpr _ (IntExp i) = movl (($.)i) eax # "load number"
 genExpr t (StringExp s) = case M.lookup s t of
   Nothing -> error "string wasn't assigned a label"

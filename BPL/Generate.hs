@@ -73,6 +73,14 @@ genExpr _ (IntExp i) = movl (($.)i) eax # "load number"
 genExpr t (StringExp s) = case M.lookup s t of
   Nothing -> error "string wasn't assigned a label"
   Just l -> movl ("$"++l) eax
+genExpr t ReadExp = do
+  movq (($.)0) rax # "clear return value"
+  sub (($.)40) rsp # "decrement stack pointer for read()"
+  leaq (24 rsp) rsi # "pointer for read() result"
+  movq readIntString rdi # "move format string into rdi"
+  call scanf
+  movq (24 rsp) rax # "put result in accumulator"
+  addq (($.)40) rsp # "pop stack"
 genExpr _ _ = return ()
 
 genStmt :: M.Map String String -> Statement SymbolTable -> CodeGen ()

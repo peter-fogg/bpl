@@ -43,8 +43,8 @@ movl = gen "movl"
 cmpq = gen "cmpq"
 leaq = gen "leaq"
 
-idivl :: String -> CodeGen ()
-idivl s = write $ "\tidivl " ++ s
+idiv :: String -> CodeGen ()
+idiv s = write $ "\tidiv " ++ s
 
 cltq, cqto :: CodeGen ()
 cltq = write "\tcltq"
@@ -79,21 +79,14 @@ generateCode cg = intercalate "\n" $ reverse c
   where (CodeGenState _ c) = execState cg initialState
         initialState = CodeGenState 0 []
 
-rax, eax, rsp, esp, rbx, ebx, rsi, esi, rdi, edi, ebp, rbp, edx, rdx :: Register
+rax, rsp, rbx, rsi, rdi, rbp, rdx :: Register
 rax = "%rax"
-eax = "%eax"
 rsp = "%rsp"
-esp = "%esp"
 rbx = "%rbx"
-ebx = "%ebx"
 rsi = "%rsi"
-esi = "%esi"
 rdi = "%rdi"
-edi = "%edi"
-ebp = "%ebp"
 rbp = "%rbp"
-edx = "%edx"
-rdx = "%edx"
+rdx = "%rdx"
 
 writeIntString, writeStringString, writeLnString, readIntString, printf, scanf :: Label
 writeIntString = "$.WriteIntString"

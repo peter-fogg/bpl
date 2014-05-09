@@ -9,7 +9,7 @@ import BPL.Types
 
 writeHeader :: CodeGen ()
 writeHeader = do
-  write ".WriteIntString: .string \"%d \""
+  write ".WriteIntString: .string \"%lld \""
   write ".WriteStringString: .string \"%s\""
   write ".WriteLnString: .string \"\\n\""
   write ".ReadIntString: .string \"%d\""
@@ -18,9 +18,9 @@ writeHeader = do
 
 writeStmt :: Label -> CodeGen ()
 writeStmt addr = do
-  movl eax esi # "put argument where C expects is"
+  movq rax rsi # "put argument where C expects it"
   movq addr rdi # "put format string in %esi"
-  movl (($.)0) eax
+  movq (($.)0) rax
   call printf
 
 localVarLength :: Int -> Statement a -> Int
@@ -64,15 +64,14 @@ genExpr t (ArithExp l op r) = do
     _ -> do
       movq rax rbp # "put divisor in rbp"
       movq (0 rsp) rax # "put dividend into rax"
-      cltq # "lol"
       cqto
-      idivl ebp # "wat"
-  when (op == OpMod) $ movl edx eax # "put remainder into accumulator"
+      idiv rbp # "wat"
+  when (op == OpMod) $ movq rdx rax # "put remainder into accumulator"
   addq (($.)8) rsp # "pop the stack"
-genExpr _ (IntExp i) = movl (($.)i) eax # "load number"
+genExpr _ (IntExp i) = movq (($.)i) rax # "load number"
 genExpr t (StringExp s) = case M.lookup s t of
   Nothing -> error "string wasn't assigned a label"
-  Just l -> movl ("$"++l) eax
+  Just l -> movq ("$"++l) rax
 genExpr t ReadExp = do
   movq (($.)0) rax # "clear return value"
   sub (($.)40) rsp # "decrement stack pointer for read()"
@@ -118,7 +117,7 @@ genDecl t (FDecl (FunDec _ fname _ stmt)) = do
     sub (($.)varLength) rsp # "allocate local vars"
     genStmt t stmt
     addq (($.)varLength) rsp # "deallocate local vars"
-    when (fname == "main") $ movl (($.)0) eax # "main should return 0"
+    when (fname == "main") $ movq (($.)0) rax # "main should return 0"
     ret
 genDecl _ (VDecl (VarDec _ i name)) = write $ ".comm " ++ name ++ ", " ++ show i ++ ", 32"
 

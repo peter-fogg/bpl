@@ -32,7 +32,7 @@ write s = modify (\c -> c { code = s:code c})
 gen :: OpCode -> String -> String -> CodeGen ()
 gen op src dest = write $ T.printf "\t%s %s, %s" op src dest
 
-add, addl, addq, sub, imul, movq, movl, cmpl :: Op
+add, addl, addq, sub, imul, movq, movl, cmpq :: Op
 add = gen "add"
 addl = gen "addl"
 addq = gen "addq"
@@ -40,7 +40,7 @@ sub = gen "sub"
 imul = gen "imul"
 movq = gen "movq"
 movl = gen "movl"
-cmpl = gen "cmpl"
+cmpq = gen "cmpq"
 
 idivl :: String -> CodeGen ()
 idivl s = write $ "\tidivl " ++ s

@@ -33,6 +33,24 @@ localVarLength i stmt = case stmt of
   _ -> i
 
 genExpr :: M.Map String String -> Expr SymbolTable -> CodeGen ()
+genExpr t (CompExp l op r) = do
+  trueLabel <- label
+  falseLabel <- label
+  genExpr t l
+  push rax
+  genExpr t r
+  cmpq (0 rsp) rax # "comparison"
+  case op of
+    OpLeq -> jg falseLabel
+    OpLe -> jge falseLabel
+    OpEq -> jne falseLabel
+    OpNeq -> je falseLabel
+    OpGe -> jle falseLabel
+    OpGeq -> jl falseLabel
+  movq (($.)1) rax # "put 1 in accumulator if true"
+  jmp trueLabel # "jump to true label"
+  falseLabel -: movq (($.)0) rax # "put 0 in accumulator if false"
+  trueLabel -: add (($.)8) rsp # "pop stack"
 genExpr t (ArithExp l op r) = do
   genExpr t l # "generate left side"
   push rax
@@ -59,6 +77,13 @@ genExpr _ _ = return ()
 
 genStmt :: M.Map String String -> Statement SymbolTable -> CodeGen ()
 genStmt t (CompoundStmt _ stmts) = mapM_ (genStmt t) stmts
+genStmt t (IfStmt e s) = do
+  l <- label
+  genExpr t e
+  cmpq (($.)0) rax # "compare result to 0"
+  je l
+  genStmt t s
+  l -: return ()
 genStmt t (ExpressionStmt e) = genExpr t e
 -- TODO: this is wrong; array references to string arrays will fail (wrong format string)
 genStmt t (WriteStmt expr) = genExpr t expr >> writeStmt (case expr of StringExp _ -> writeStringString

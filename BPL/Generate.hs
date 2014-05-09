@@ -12,7 +12,7 @@ writeHeader = do
   write ".WriteIntString: .string \"%lld \""
   write ".WriteStringString: .string \"%s\""
   write ".WriteLnString: .string \"\\n\""
-  write ".ReadIntString: .string \"%d\""
+  write ".ReadIntString: .string \"%lld\""
   write ".text"
   write ".globl main"
 

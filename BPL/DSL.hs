@@ -7,11 +7,14 @@ import qualified Text.Printf as T
 
 import BPL.Types
 
-label :: CodeGen Label
-label = do
+newLabel :: CodeGen Label
+newLabel = do
   n <- fmap labels get
   modify (\c -> c { labels = succ n })
   return $ ".L" ++ show n
+
+label :: Label -> CodeGen ()
+label l = write (l ++ ":")
 
 infixr 0 -:
 (-:) :: Label -> CodeGen a -> CodeGen a

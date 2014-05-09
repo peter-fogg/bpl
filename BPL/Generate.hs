@@ -34,8 +34,8 @@ localVarLength i stmt = case stmt of
 
 genExpr :: M.Map String String -> Expr SymbolTable -> CodeGen ()
 genExpr t (CompExp l op r) = do
-  trueLabel <- label
-  falseLabel <- label
+  trueLabel <- newLabel
+  falseLabel <- newLabel
   genExpr t l
   push rax
   genExpr t r
@@ -85,33 +85,33 @@ genExpr _ _ = return ()
 genStmt :: M.Map String String -> Statement SymbolTable -> CodeGen ()
 genStmt t (CompoundStmt _ stmts) = mapM_ (genStmt t) stmts
 genStmt t (IfStmt e s) = do
-  l <- label
+  l <- newLabel
   genExpr t e
   cmpq (($.)0) rax # "compare result to 0"
   je l
   genStmt t s
-  l -: return ()
+  label l
 genStmt t (IfElseStmt e s1 s2) = do
-  els <- label
-  fin <- label
+  els <- newLabel
+  fin <- newLabel
   genExpr t e
   cmpq (($.)0) rax # "compare result to 0"
   je els # "jump to else case"
   genStmt t s1
   jmp fin # "jump to end of if/else"
-  els -: return () # "else"
+  label els # "else"
   genStmt t s2
-  fin -: return () # "end if/else"
+  label fin # "end if/else"
 genStmt t (WhileStmt e s) = do
-  end <- label
-  start <- label
-  start -: return ()
+  end <- newLabel
+  start <- newLabel
+  label start # "top of loop"
   genExpr t e
   cmpq (($.)0) rax # "compare result to 0"
   je end # "jump over statement"
   genStmt t s
   jmp start # "loop"
-  end -: return ()
+  label end # "end of loop"
 genStmt t (ExpressionStmt e) = genExpr t e
 -- TODO: this is wrong; array references to string arrays will fail (wrong format string)
 genStmt t (WriteStmt expr) = genExpr t expr >> writeStmt (case expr of StringExp _ -> writeStringString

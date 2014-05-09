@@ -84,6 +84,17 @@ genStmt t (IfStmt e s) = do
   je l
   genStmt t s
   l -: return ()
+genStmt t (IfElseStmt e s1 s2) = do
+  els <- label
+  fin <- label
+  genExpr t e
+  cmpq (($.)0) rax # "compare result to 0"
+  je els # "jump to else case"
+  genStmt t s1
+  jmp fin # "jump to end of if/else"
+  els -: return () # "else"
+  genStmt t s2
+  fin -: return () # "end if/else"
 genStmt t (ExpressionStmt e) = genExpr t e
 -- TODO: this is wrong; array references to string arrays will fail (wrong format string)
 genStmt t (WriteStmt expr) = genExpr t expr >> writeStmt (case expr of StringExp _ -> writeStringString

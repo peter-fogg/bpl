@@ -76,7 +76,7 @@ varSymTab symTab v = case v of
 
 stmtSymTab :: SymbolTable -> Statement () -> Statement SymbolTable
 stmtSymTab symTab (CompoundStmt decls stmts) = CompoundStmt decls (map (stmtSymTab newTable) stmts)
-  where newTable = foldl' (\s d@(VarDec _ i _) -> insertVarDec d (Just $ (-8)*i) s) symTab decls
+  where newTable = foldl' (\s (d, i) -> insertVarDec d (Just $ (-8)*i) s) symTab (zip decls [1..])
 stmtSymTab symTab (ExpressionStmt e) = ExpressionStmt (exprSymTab symTab e)
 stmtSymTab symTab (IfStmt e s) = IfStmt (exprSymTab symTab e) (stmtSymTab symTab s)
 stmtSymTab symTab (IfElseStmt e s1 s2) = IfElseStmt (exprSymTab symTab e) (stmtSymTab symTab s1) (stmtSymTab symTab s2)

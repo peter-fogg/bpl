@@ -72,6 +72,12 @@ genExpr _ (IntExp i) = movq (($.)i) rax # "load number"
 genExpr t (StringExp s) = case M.lookup s t of
   Nothing -> error "string wasn't assigned a label"
   Just l -> movq ("$"++l) rax
+genExpr t (FuncExp fname args _) = do
+  forM_ (reverse args) $ \arg -> do
+    genExpr t arg
+    push rax # "push argument onto the stack"
+  call fname
+  sub (($.) (8 * length args)) rsp # "pop arguments off the stack"
 genExpr t ReadExp = do
   movq (($.)0) rax # "clear return value"
   sub (($.)40) rsp # "decrement stack pointer for read()"
@@ -82,42 +88,46 @@ genExpr t ReadExp = do
   addq (($.)40) rsp # "pop stack"
 genExpr _ _ = return ()
 
-genStmt :: M.Map String String -> Statement SymbolTable -> CodeGen ()
-genStmt t (CompoundStmt _ stmts) = mapM_ (genStmt t) stmts
-genStmt t (IfStmt e s) = do
+genStmt :: M.Map String String -> String -> Statement SymbolTable -> CodeGen ()
+genStmt t fname (CompoundStmt _ stmts) = mapM_ (genStmt t fname) stmts
+genStmt t fname (IfStmt e s) = do
   l <- newLabel
   genExpr t e
   cmpq (($.)0) rax # "compare result to 0"
   je l
-  genStmt t s
+  genStmt t fname s
   label l
-genStmt t (IfElseStmt e s1 s2) = do
+genStmt t fname (IfElseStmt e s1 s2) = do
   els <- newLabel
   fin <- newLabel
   genExpr t e
   cmpq (($.)0) rax # "compare result to 0"
   je els # "jump to else case"
-  genStmt t s1
+  genStmt t fname s1
   jmp fin # "jump to end of if/else"
   label els # "else"
-  genStmt t s2
+  genStmt t fname s2
   label fin # "end if/else"
-genStmt t (WhileStmt e s) = do
+genStmt t fname (WhileStmt e s) = do
   end <- newLabel
   start <- newLabel
   label start # "top of loop"
   genExpr t e
   cmpq (($.)0) rax # "compare result to 0"
   je end # "jump over statement"
-  genStmt t s
+  genStmt t fname s
   jmp start # "loop"
   label end # "end of loop"
-genStmt t (ExpressionStmt e) = genExpr t e
+genStmt t _ (ExpressionStmt e) = genExpr t e
+genStmt t fname (ReturnStmt e) = do
+  case e of
+    Nothing -> return ()
+    Just e' -> genExpr t e'
+  jmp $ fname ++ "_ret"
 -- TODO: this is wrong; array references to string arrays will fail (wrong format string)
-genStmt t (WriteStmt expr) = genExpr t expr >> writeStmt (case expr of StringExp _ -> writeStringString
-                                                                       _ -> writeIntString)
-genStmt _ WriteLnStmt = writeStmt writeLnString
-genStmt _ _ = return ()
+genStmt t _ (WriteStmt expr) = genExpr t expr >> writeStmt (case expr of StringExp _ -> writeStringString
+                                                                         _ -> writeIntString)
+genStmt _ _ WriteLnStmt = writeStmt writeLnString
 
 genDecl :: M.Map String String -> Declaration SymbolTable -> CodeGen ()
 genDecl t (FDecl (FunDec _ fname _ stmt)) = do
@@ -125,10 +135,12 @@ genDecl t (FDecl (FunDec _ fname _ stmt)) = do
   fname -: do
     movq rsp rbx # "move stack pointer to frame pointer"
     sub (($.)varLength) rsp # "allocate local vars"
-    genStmt t stmt
+    genStmt t fname stmt
+  fname ++ "_ret" -: do
     addq (($.)varLength) rsp # "deallocate local vars"
     when (fname == "main") $ movq (($.)0) rax # "main should return 0"
     ret
+  write "\n"
 genDecl _ (VDecl (VarDec _ i name)) = write $ ".comm " ++ name ++ ", " ++ show i ++ ", 32"
 
 allocateStrings :: M.Map String String -> CodeGen ()

@@ -23,8 +23,9 @@ l -: c = write (l ++ ":") >> c
 infixr 0 #
 (#) :: CodeGen a -> String -> CodeGen ()
 c # s = c >> modify (\c' -> case code c' of
-                        x:xs -> c' { code = (x ++ "\t# " ++ s):xs }
+                        x:xs -> c' { code = (x ++ tabs x ++ "# " ++ s):xs }
                         _ -> c')
+        where tabs x = concat $ replicate (1 + ((40 - (length x + 8)) `quot` 8)) "\t"
 
 ($.) :: Int -> String
 ($.) n = "$" ++ show n

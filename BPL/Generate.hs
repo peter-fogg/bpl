@@ -54,9 +54,9 @@ genExpr t e = case e of
     falseLabel -: movq (($.)0) rax # "put 0 in accumulator if false"
     trueLabel -: add (($.)8) rsp # "pop stack"
   ArithExp l op r -> do
-    genExpr t l # "generate left side"
+    genExpr t l
     push rax
-    genExpr t r # "generate right side"
+    genExpr t r
     case op of
       OpPlus -> addq (0 rsp) rax # "add the two operands"
       OpMinus -> do

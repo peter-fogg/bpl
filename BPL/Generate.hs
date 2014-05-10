@@ -4,6 +4,7 @@ module BPL.Generate
 import Control.Monad
 import qualified Data.Map as M
 
+import BPL.Check
 import BPL.DSL
 import BPL.Types
 
@@ -73,6 +74,11 @@ genExpr t e = case e of
   StringExp s -> case M.lookup s t of
     Nothing -> error "string wasn't assigned a label"
     Just l -> movq ("$"++l) rax
+  VarExp s symTab -> do
+    case tableLookup symTab s of
+      Nothing -> error "unbound symbol passed typechecking!"
+      Just (_, Nothing) -> movq s rax # "load global variable"
+      Just (_, Just i) -> movq (show i ++ "(" ++ rbx ++ ")") rax # "load local variable"
   FuncExp fname args _ -> do
     forM_ (reverse args) $ \arg -> do
       genExpr t arg

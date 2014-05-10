@@ -78,14 +78,14 @@ genExpr t e = case e of
     case tableLookup symTab s of
       Nothing -> error "unbound symbol passed typechecking!"
       Just (_, Nothing) -> movq s rax # "load global variable"
-      Just (_, Just i) -> movq (show i ++ "(" ++ rbx ++ ")") rax # "load local variable"
+      Just (_, Just i) -> movq (show i ++ "(" ++ rbp ++ ")") rax # "load local variable"
   FuncExp fname args _ -> do
     forM_ (reverse args) $ \arg -> do
       genExpr t arg
       push rax # "push argument onto the stack"
     push rbp # "save frame pointer"
     call fname
-    pop rbx # "restore frame pointer"
+    pop rbp # "restore frame pointer"
     add (($.) (8 * length args)) rsp # "pop arguments off the stack"
   ReadExp -> do
     movq (($.)0) rax # "clear return value"
@@ -133,7 +133,7 @@ genStmt t fname stmt = case stmt of
     case e of
       Nothing -> return ()
       Just e' -> genExpr t e'
-    jmp $ fname ++ "_ret"
+    jmp $ "." ++ fname ++ "_ret"
   WriteStmt e -> do
     genExpr t e
     -- TODO: this is wrong; array references to string arrays will fail (wrong format string)
@@ -146,10 +146,10 @@ genDecl :: M.Map String String -> Declaration SymbolTable -> CodeGen ()
 genDecl t (FDecl (FunDec _ fname _ stmt)) = do
   let varLength = localVarLength 0 stmt
   fname -: do
-    movq rsp rbx # "move stack pointer to frame pointer"
+    movq rsp rbp # "move stack pointer to frame pointer"
     sub (($.)varLength) rsp # "allocate local vars"
     genStmt t fname stmt
-  fname ++ "_ret" -: do
+  "." ++ fname ++ "_ret" -: do
     addq (($.)varLength) rsp # "deallocate local vars"
     when (fname == "main") $ movq (($.)0) rax # "main should return 0"
     ret

@@ -154,7 +154,7 @@ genDecl t (FDecl (FunDec _ fname _ stmt)) = do
     when (fname == "main") $ movq (($.)0) rax # "main should return 0"
     ret
   write "\n"
-genDecl _ (VDecl (VarDec _ i name)) = write $ ".comm " ++ name ++ ", " ++ show i ++ ", 32"
+genDecl _ (VDecl (VarDec _ i name)) = write $ ".comm " ++ name ++ ", " ++ show i ++ ", 64"
 
 allocateStrings :: M.Map String String -> CodeGen ()
 allocateStrings t = forM_ (M.toAscList t) $ \(s, l) -> do

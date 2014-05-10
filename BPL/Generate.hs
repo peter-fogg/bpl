@@ -95,6 +95,8 @@ genExpr t e = case e of
     call scanf
     movq (24 rsp) rax # "put result in accumulator"
     addq (($.)40) rsp # "pop stack"
+  AssignExp v e -> do
+    return ()
   _ -> return ()
 
 genStmt :: M.Map String String -> String -> Statement SymbolTable -> CodeGen ()

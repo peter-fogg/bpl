@@ -43,7 +43,7 @@ declSymTab :: SymbolTable -> Declaration () -> (Declaration SymbolTable, SymbolT
 declSymTab symTab (VDecl v) = (VDecl v, insertVarDec v Nothing symTab)
 declSymTab symTab (FDecl (FunDec typ s decls stmt)) = let
   symTab' = insertSymbolTable' s (f', Nothing) symTab
-  declEntries = zipWith (\(s, d) i -> (s, (d, Just (8*i)))) (map (getName &&& VDecl) decls) [1..]
+  declEntries = zipWith (\(s, d) i -> (s, (d, Just (8*i)))) (map (getName &&& VDecl) decls) [2..]
   symTab'' = insertMultipleSymbolTable declEntries symTab'
   f' = FDecl $ FunDec typ s decls (stmtSymTab symTab'' stmt) in
   (f', symTab')

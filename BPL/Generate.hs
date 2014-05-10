@@ -83,8 +83,10 @@ genExpr t e = case e of
     forM_ (reverse args) $ \arg -> do
       genExpr t arg
       push rax # "push argument onto the stack"
+    push rbp # "save frame pointer"
     call fname
-    sub (($.) (8 * length args)) rsp # "pop arguments off the stack"
+    pop rbx # "restore frame pointer"
+    add (($.) (8 * length args)) rsp # "pop arguments off the stack"
   ReadExp -> do
     movq (($.)0) rax # "clear return value"
     sub (($.)40) rsp # "decrement stack pointer for read()"

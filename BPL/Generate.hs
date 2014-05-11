@@ -41,7 +41,7 @@ genExpr t e = case e of
     genExpr t l
     push rax
     genExpr t r
-    cmpq (0 rsp) rax # "comparison"
+    cmpq rax (0 rsp) # "comparison"
     case op of
       OpLeq -> jg falseLabel
       OpLe -> jge falseLabel

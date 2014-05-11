@@ -167,8 +167,8 @@ assignExp = do
 relOps :: M.Map TokenType RelOp
 relOps = M.fromList [ (TkRAngle, OpGe)
                     , (TkLAngle, OpLe)
-                    , (TkLEQ, OpGeq)
-                    , (TkGEQ, OpLeq)
+                    , (TkLEQ, OpLeq)
+                    , (TkGEQ, OpGeq)
                     , (TkDoubleEqual, OpEq)
                     , (TkNotEqual, OpNeq)
                     ]

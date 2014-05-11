@@ -79,6 +79,17 @@ genExpr t e = case e of
       Nothing -> error "unbound symbol passed typechecking!"
       Just (_, Nothing) -> movq s rax # "load global variable"
       Just (_, Just i) -> movq (i % rbp) rax # "load local variable"
+  ArrayExp s idx symTab -> do
+    push rax # "store result of expression"
+    genExpr t idx
+    imul (($.)8) rax # "compute offset amount"
+    case tableLookup symTab s of
+      Nothing -> error "unbound symbol passed typechecking!"
+      Just (_, Nothing) -> leaq s r12 # "load global array address"
+      Just (_, Just i) -> leaq (i % rbp) r12 # "load local array address"
+    add rax r12 # "compute actual offset"
+    pop rax # "get expression result back"
+    movq (0 r12) rax # "evaluate result"
   FuncExp fname args _ -> do
     forM_ (reverse args) $ \arg -> do
       genExpr t arg
@@ -102,6 +113,17 @@ genExpr t e = case e of
         Nothing -> error "unbound symbol passed typechecking!"
         Just (_, Nothing) -> movq rax s # "assign to global variable"
         Just (_, Just i) -> movq rax (i % rbp) # "assign to local variable"
+      ArrVar s idx symTab -> do
+        push rax # "store result of expression"
+        case tableLookup symTab s of
+          Nothing -> error "unbound symbol passed typechecking!"
+          Just (_, Nothing) -> leaq s r12 # "load global array address"
+          Just (_, Just i) -> leaq (i % rbp) r12 # "load local array address"
+        genExpr t idx
+        imul (($.)8) rax # "compute offset amount"
+        addq rax r12 # "compute actual offset"
+        pop rax # "get expression result back"
+        movq rax (0 r12) # "assign to local variable"
   _ -> return ()
 
 genStmt :: M.Map String String -> String -> Statement SymbolTable -> CodeGen ()

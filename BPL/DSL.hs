@@ -87,7 +87,7 @@ generateCode cg = intercalate "\n" $ reverse c
   where (CodeGenState _ c) = execState cg initialState
         initialState = CodeGenState 0 []
 
-rax, rsp, rbx, rsi, rdi, rbp, rdx :: Register
+rax, rsp, rbx, rsi, rdi, rbp, rdx, r12 :: Register
 rax = "%rax"
 rsp = "%rsp"
 rbx = "%rbx"
@@ -95,6 +95,7 @@ rsi = "%rsi"
 rdi = "%rdi"
 rbp = "%rbp"
 rdx = "%rdx"
+r12 = "%r12"
 
 writeIntString, writeStringString, writeLnString, readIntString, printf, scanf :: Label
 writeIntString = "$.WriteIntString"

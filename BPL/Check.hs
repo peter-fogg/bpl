@@ -133,9 +133,13 @@ checkExpr (FuncExp name exprs symTab) = do
   let (FunDec typ s decls _) = funDec
       declTypes = map getType decls
   exprTypes <- mapM checkExpr exprs
-  if declTypes == exprTypes
+  if typesMatch declTypes exprTypes
     then report (s ++ "()") typ >> return typ
     else typeMismatch (show declTypes) (show exprTypes)
+  where typesMatch es ds = foldl' go True (zip es ds)
+        go acc (TIntArray _, TIntArray _) = acc
+        go acc (TStringArray _, TStringArray _) = acc
+        go acc (d, e) = acc && d == e
 checkExpr ReadExp = return TInt
 checkExpr (AssignExp var expr) = do
   vtype <- checkVar var

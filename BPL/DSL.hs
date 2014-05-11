@@ -27,6 +27,10 @@ c # s = c >> modify (\c' -> case code c' of
                         _ -> c')
         where tabs x = concat $ replicate (1 + ((40 - (length x + 8)) `quot` 8)) "\t"
 
+infixr 8 %
+(%) :: Int -> Register -> String
+i % r = T.printf "%d(%s)" i r
+
 ($.) :: Int -> String
 ($.) n = "$" ++ show n
 

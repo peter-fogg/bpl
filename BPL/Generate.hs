@@ -78,7 +78,7 @@ genExpr t e = case e of
     case tableLookup symTab s of
       Nothing -> error "unbound symbol passed typechecking!"
       Just (_, Nothing) -> movq s rax # "load global variable"
-      Just (_, Just i) -> movq (show i ++ "(" ++ rbp ++ ")") rax # "load local variable"
+      Just (_, Just i) -> movq (i % rbp) rax # "load local variable"
   FuncExp fname args _ -> do
     forM_ (reverse args) $ \arg -> do
       genExpr t arg
@@ -101,7 +101,7 @@ genExpr t e = case e of
       IdVar s symTab -> case tableLookup symTab s of
         Nothing -> error "unbound symbol passed typechecking!"
         Just (_, Nothing) -> movq rax s # "assign to global variable"
-        Just (_, Just i) -> movq rax (show i ++ "(" ++ rbp ++ ")") # "assign to local variable"
+        Just (_, Just i) -> movq rax (i % rbp) # "assign to local variable"
   _ -> return ()
 
 genStmt :: M.Map String String -> String -> Statement SymbolTable -> CodeGen ()

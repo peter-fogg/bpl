@@ -96,7 +96,12 @@ genExpr t e = case e of
     movq (24 rsp) rax # "put result in accumulator"
     addq (($.)40) rsp # "pop stack"
   AssignExp v e -> do
-    return ()
+    genExpr t e
+    case v of
+      IdVar s symTab -> case tableLookup symTab s of
+        Nothing -> error "unbound symbol passed typechecking!"
+        Just (_, Nothing) -> movq rax s # "assign to global variable"
+        Just (_, Just i) -> movq rax (show i ++ "(" ++ rbp ++ ")") # "assign to local variable"
   _ -> return ()
 
 genStmt :: M.Map String String -> String -> Statement SymbolTable -> CodeGen ()

@@ -64,10 +64,10 @@ genExpr t e = case e of
         movq (0 rsp) rax # "put value in accumulator"
       OpTimes -> imul (0 rsp) rax # "multiply the two operands"
       _ -> do
-        movq rax rbp # "put divisor in rbp"
+        movq rax rbx # "put divisor in rbx"
         movq (0 rsp) rax # "put dividend into rax"
         cqto
-        idiv rbp # "wat"
+        idiv rbx # "wat"
     when (op == OpMod) $ movq rdx rax # "put remainder into accumulator"
     addq (($.)8) rsp # "pop the stack"
   IntExp i -> movq (($.)i) rax # "load number"

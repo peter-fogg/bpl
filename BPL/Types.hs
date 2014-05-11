@@ -165,12 +165,12 @@ type CodeGen = State CodeGenState
 
 -- this is bad and i should feel bad; i don't
 instance Num (Register -> String) where
-  fromInteger n s = printf "%d(%s)" n s
+  fromInteger = printf "%d(%s)"
   (+) = undefined
   (*) = undefined
   abs = undefined
   signum = undefined
-  negate f = \s -> "-" ++ f s
+  negate f s = "-" ++ f s
 
 indent :: Int -> String
 indent n = concat $ replicate n "| "

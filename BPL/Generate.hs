@@ -74,11 +74,10 @@ genExpr t e = case e of
   StringExp s -> case M.lookup s t of
     Nothing -> error "string wasn't assigned a label"
     Just l -> movq ("$"++l) rax
-  VarExp s symTab -> do
-    case tableLookup symTab s of
-      Nothing -> error "unbound symbol passed typechecking!"
-      Just (_, Nothing) -> movq s rax # "load global variable"
-      Just (_, Just i) -> movq (i % rbp) rax # "load local variable"
+  VarExp s symTab -> case tableLookup symTab s of
+    Nothing -> error "unbound symbol passed typechecking!"
+    Just (_, Nothing) -> movq s rax # "load global variable"
+    Just (_, Just i) -> movq (i % rbp) rax # "load local variable"
   ArrayExp s idx symTab -> do
     push rax # "store result of expression"
     genExpr t idx
@@ -186,8 +185,7 @@ genDecl t (FDecl (FunDec _ fname _ stmt)) = do
 genDecl _ (VDecl (VarDec _ i name)) = write $ ".comm " ++ name ++ ", " ++ show i ++ ", 64"
 
 allocateStrings :: M.Map String String -> CodeGen ()
-allocateStrings t = forM_ (M.toAscList t) $ \(s, l) -> do
-  write $ l ++ ": .string " ++ show s
+allocateStrings t = forM_ (M.toAscList t) $ \(s, l) -> write $ l ++ ": .string " ++ show s
 
 genBPL :: [Declaration SymbolTable] -> M.Map String String -> CodeGen ()
 genBPL decls t = do

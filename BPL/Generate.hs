@@ -76,23 +76,23 @@ genExpr t e = case e of
     Just l -> movq ("$"++l) rax
   VarExp s symTab -> case tableLookup symTab s of
     Nothing -> error "unbound symbol passed typechecking!"
-    Just (_, Nothing) -> movq s rax # "load global variable"
-    Just (_, Just i) -> movq (i % rbp) rax # "load local variable"
+    Just (_, Nothing, _) -> movq s rax # "load global variable"
+    Just (_, Just i, _) -> movq (i % rbp) rax # "load local variable"
   DerefExp e' _ -> do
     genExpr t e'
     movq (0 rax) rax # "result of pointer dereference"
   AddrExp e' _ -> case e' of
     VarExp s symTab -> case tableLookup symTab s of
       Nothing -> error "unbound symbol passed typechecking!"
-      Just (_, Nothing) -> leaq s rax # "load address of global variable"
-      Just (_, Just i) -> leaq (i % rbp) rax # "load address of local variable"
+      Just (_, Nothing, _) -> leaq s rax # "load address of global variable"
+      Just (_, Just i, _) -> leaq (i % rbp) rax # "load address of local variable"
     ArrayExp s idx symTab -> do
       genExpr t idx
       imul (($.)(-8)) rax # "compute offset amount"
       case tableLookup symTab s of
         Nothing -> error "unbound symbol passed typechecking!"
-        Just (_, Nothing) -> leaq s r12 # "load address of global array"
-        Just (_, Just i) -> leaq (i % rbp) r12 # "load address of local array"
+        Just (_, Nothing, _) -> leaq s r12 # "load address of global array"
+        Just (_, Just i, _) -> leaq (i % rbp) r12 # "load address of local array"
       addq r12 rax # "compute address of array reference"
     _ -> error "attempt to address in a non-type-safe way"
   ArrayExp s idx symTab -> do
@@ -100,8 +100,8 @@ genExpr t e = case e of
     imul (($.)(-8)) rax # "compute offset amount"
     case tableLookup symTab s of
       Nothing -> error "unbound symbol passed typechecking!"
-      Just (_, Nothing) -> leaq s r12 # "load global array address"
-      Just (_, Just i) -> leaq (i % rbp) r12 # "load local array address"
+      Just (_, Nothing, _) -> leaq s r12 # "load global array address"
+      Just (_, Just i, _) -> leaq (i % rbp) r12 # "load local array address"
     add rax r12 # "compute actual offset"
     movq (0 r12) rax # "evaluate result"
   FuncExp fname args _ -> do
@@ -125,14 +125,14 @@ genExpr t e = case e of
     case v of
       IdVar s symTab -> case tableLookup symTab s of
         Nothing -> error "unbound symbol passed typechecking!"
-        Just (_, Nothing) -> movq rax s # "assign to global variable"
-        Just (_, Just i) -> movq rax (i % rbp) # "assign to local variable"
+        Just (_, Nothing, _) -> movq rax s # "assign to global variable"
+        Just (_, Just i, _) -> movq rax (i % rbp) # "assign to local variable"
       ArrVar s idx symTab -> do
         push rax # "store result of expression"
         case tableLookup symTab s of
           Nothing -> error "unbound symbol passed typechecking!"
-          Just (_, Nothing) -> leaq s r12 # "load global array address"
-          Just (_, Just i) -> leaq (i % rbp) r12 # "load local array address"
+          Just (_, Nothing, _) -> leaq s r12 # "load global array address"
+          Just (_, Just i, _) -> leaq (i % rbp) r12 # "load local array address"
         genExpr t idx
         imul (($.)(-8)) rax # "compute offset amount"
         addq rax r12 # "compute actual offset"
@@ -140,10 +140,10 @@ genExpr t e = case e of
         movq rax (0 r12) # "assign to local variable"
       DerefVar s symTab -> case tableLookup symTab s of
         Nothing -> error "unbound symbol passed typechecking!"
-        Just (_, Nothing) -> do
+        Just (_, Nothing, _) -> do
           movq s r12 # "get value of pointer"
           movq rax (0 r12) # "assign result to value of pointer"
-        Just (_, Just i) -> do
+        Just (_, Just i, _) -> do
           movq rbp r12 # "get base pointer"
           add (($.)i) r12 # "compute value of pointer"
           movq (0 r12) r12 # "dereference pointer"

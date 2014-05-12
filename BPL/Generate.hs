@@ -78,6 +78,23 @@ genExpr t e = case e of
     Nothing -> error "unbound symbol passed typechecking!"
     Just (_, Nothing) -> movq s rax # "load global variable"
     Just (_, Just i) -> movq (i % rbp) rax # "load local variable"
+  DerefExp e' _ -> do
+    genExpr t e'
+    movq (0 rax) rax # "result of pointer dereference"
+  AddrExp e' _ -> case e' of
+    VarExp s symTab -> case tableLookup symTab s of
+      Nothing -> error "unbound symbol passed typechecking!"
+      Just (_, Nothing) -> leaq s rax # "load address of global variable"
+      Just (_, Just i) -> leaq (i % rbp) rax # "load address of local variable"
+    ArrayExp s idx symTab -> do
+      genExpr t idx
+      imul (($.)8) rax # "compute offset amount"
+      case tableLookup symTab s of
+        Nothing -> error "unbound symbol passed typechecking!"
+        Just (_, Nothing) -> leaq s r12 # "load address of global array"
+        Just (_, Just i) -> leaq (i % rbp) r12 # "load address of local array"
+      addq r12 rax # "compute address of array reference"
+    _ -> error "attempt to address in a non-type-safe way"
   ArrayExp s idx symTab -> do
     push rax # "store result of expression"
     genExpr t idx
@@ -105,8 +122,8 @@ genExpr t e = case e of
     call scanf
     movq (24 rsp) rax # "put result in accumulator"
     addq (($.)40) rsp # "pop stack"
-  AssignExp v e -> do
-    genExpr t e
+  AssignExp v e' -> do
+    genExpr t e'
     case v of
       IdVar s symTab -> case tableLookup symTab s of
         Nothing -> error "unbound symbol passed typechecking!"
@@ -123,8 +140,16 @@ genExpr t e = case e of
         addq rax r12 # "compute actual offset"
         pop rax # "get expression result back"
         movq rax (0 r12) # "assign to local variable"
-      _ -> return ()
-  _ -> return ()
+      DerefVar s symTab -> case tableLookup symTab s of
+        Nothing -> error "unbound symbol passed typechecking!"
+        Just (_, Nothing) -> do
+          movq s r12 # "get value of pointer"
+          movq rax (0 r12) # "assign result to value of pointer"
+        Just (_, Just i) -> do
+          movq rbp r12 # "get base pointer"
+          add (($.)i) r12 # "compute value of pointer"
+          movq (0 r12) r12 # "dereference pointer"
+          movq rax (0 r12) # "assign result to value of pointer"
 
 genStmt :: M.Map String String -> String -> Statement SymbolTable -> CodeGen ()
 genStmt t fname stmt = case stmt of

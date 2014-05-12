@@ -152,10 +152,11 @@ var = do
   star <- parseMaybe $ consume TkStar
   ref <- identifier
   index <- parseMaybe $ squares expression
-  return $ case (star, index) of
-    (Nothing, Nothing) -> IdVar ref ()
-    (Nothing, Just e) -> ArrVar ref e ()
-    (Just _, Nothing) -> DerefVar ref ()
+  case (star, index) of
+    (Nothing, Nothing) -> return $ IdVar ref ()
+    (Nothing, Just e) -> return $ ArrVar ref e ()
+    (Just _, Nothing) -> return $ DerefVar ref ()
+    (_, _) -> fail "can't be both an array and a pointer dereference"
 
 assignExp :: Parser (Expr ())
 assignExp = do
@@ -330,12 +331,7 @@ writeLnStmt = do
   consume TkSemicolon <|> fail eNoSemi
   return WriteLnStmt
 
-errorString :: String -> Token -> String
-errorString expected (Token t v l) = "expected " ++ expected
-                                     ++ ", found " ++ show t
-                                     ++ " with value " ++ v
-                                     ++ " on line " ++ show l
-
+eNoBody, eNoCond, eNoExpr, eNoSemi, eNoIdnt, eNoType :: String
 eNoBody = "missing body"
 eNoCond = "missing condition"
 eNoExpr = "missing expression"

@@ -123,6 +123,7 @@ genExpr t e = case e of
         addq rax r12 # "compute actual offset"
         pop rax # "get expression result back"
         movq rax (0 r12) # "assign to local variable"
+      _ -> return ()
   _ -> return ()
 
 genStmt :: M.Map String String -> String -> Statement SymbolTable -> CodeGen ()

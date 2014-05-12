@@ -104,13 +104,13 @@ checkExpr (VarExp name symTab) = case tableLookup symTab name of
   Nothing -> undeclared
   Just (FDecl _, _) -> typeMismatch "function" "variable reference"
   Just (VDecl (VarDec typ _ s), _) -> report s typ >> return typ
-checkExpr (DerefExp expr symTab) = do
+checkExpr (DerefExp expr _) = do
   etype <- checkExpr expr
   case etype of
     TIntPointer -> return TInt
     TStringPointer -> return TString
     _ -> typeMismatch "dereference" (show etype)
-checkExpr (AddrExp expr symTab) = do
+checkExpr (AddrExp expr _) = do
   etype <- checkExpr expr
   case etype of
     TInt -> return TIntPointer

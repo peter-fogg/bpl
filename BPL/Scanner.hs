@@ -43,6 +43,7 @@ skipComments :: String -> LineNumber -> (String, LineNumber)
 skipComments [] line = ([], line)
 skipComments s line = go 1 s line
   where
+    go :: Int -> String -> LineNumber -> (String, LineNumber)
     go _ [] line = ([], line)
     go 0 s line = (s, line)
     go n ('/':'*':s) line = go (n + 1) s line
@@ -58,8 +59,10 @@ findString s = go s ""
         go ('\n':_) _ = Nothing -- unterminated string
         go (c:rest) acc = go rest (c:acc)
 
+findNumber :: String -> (String, String)
 findNumber = findThing isDigit
 
+findIdentifier :: String -> (String, String)
 findIdentifier = findThing isValidIdentifierChar
   where isValidIdentifierChar c = c `elem` '_':['0' .. '9'] ++ ['a' .. 'z'] ++ ['A' .. 'Z']
 

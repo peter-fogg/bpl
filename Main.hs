@@ -24,7 +24,7 @@ main = do
   case tokenize contents >>= extractParseResult . runParser parseBPL of
     Left err -> putStrLn $ "PROBLEMTOWN: " ++ err
     Right decls -> case flip runState (M.empty, 0) . runWriterT . runMaybeT . mapM checkDecl $ decls' of
-      ((Just ast, output), (table, _)) -> let code = generateCode $ genBPL decls' table
+      ((Just _, _), (table, _)) -> let code = generateCode $ genBPL decls' table
                                           in putStrLn code >> writeFile "out.s" code
       ((Nothing, output), _) -> putStrLn output
       where decls' = fst . createSymbolTable $ decls

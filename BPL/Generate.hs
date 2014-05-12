@@ -191,7 +191,14 @@ genStmt t fname stmt = case stmt of
     -- TODO: this is wrong; array references to string arrays will fail (wrong format string)
     writeStmt $ case e of
       StringExp _ -> writeStringString
+      ArrayExp s _ symTab -> case tableLookup symTab s of
+        Nothing -> "unbound symbol passed typechecking!"
+        Just (_, _, typ) -> formatString typ
       _ -> writeIntString
+    where formatString TString = writeStringString
+          formatString (TStringArray _) = writeStringString
+          formatString TStringPointer = writeStringString
+          formatString _ = writeIntString
   WriteLnStmt -> writeStmt writeLnString
 
 genDecl :: M.Map String String -> Declaration SymbolTable -> CodeGen ()

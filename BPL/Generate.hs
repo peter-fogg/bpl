@@ -88,7 +88,7 @@ genExpr t e = case e of
       Just (_, Just i) -> leaq (i % rbp) rax # "load address of local variable"
     ArrayExp s idx symTab -> do
       genExpr t idx
-      imul (($.)8) rax # "compute offset amount"
+      imul (($.)(-8)) rax # "compute offset amount"
       case tableLookup symTab s of
         Nothing -> error "unbound symbol passed typechecking!"
         Just (_, Nothing) -> leaq s r12 # "load address of global array"
@@ -96,15 +96,13 @@ genExpr t e = case e of
       addq r12 rax # "compute address of array reference"
     _ -> error "attempt to address in a non-type-safe way"
   ArrayExp s idx symTab -> do
-    push rax # "store result of expression"
     genExpr t idx
-    imul (($.)8) rax # "compute offset amount"
+    imul (($.)(-8)) rax # "compute offset amount"
     case tableLookup symTab s of
       Nothing -> error "unbound symbol passed typechecking!"
       Just (_, Nothing) -> leaq s r12 # "load global array address"
       Just (_, Just i) -> leaq (i % rbp) r12 # "load local array address"
     add rax r12 # "compute actual offset"
-    pop rax # "get expression result back"
     movq (0 r12) rax # "evaluate result"
   FuncExp fname args _ -> do
     forM_ (reverse args) $ \arg -> do
@@ -136,7 +134,7 @@ genExpr t e = case e of
           Just (_, Nothing) -> leaq s r12 # "load global array address"
           Just (_, Just i) -> leaq (i % rbp) r12 # "load local array address"
         genExpr t idx
-        imul (($.)8) rax # "compute offset amount"
+        imul (($.)(-8)) rax # "compute offset amount"
         addq rax r12 # "compute actual offset"
         pop rax # "get expression result back"
         movq rax (0 r12) # "assign to local variable"

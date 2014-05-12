@@ -76,6 +76,8 @@ genExpr t e = case e of
     Just l -> movq ("$"++l) rax
   VarExp s symTab -> case tableLookup symTab s of
     Nothing -> error "unbound symbol passed typechecking!"
+    Just (_, Nothing, TIntArray _) -> movq ("$" ++ s) rax # "load global array"
+    Just (_, Nothing, TStringArray _) -> movq ("$" ++ s) rax # "load global array"
     Just (_, Nothing, _) -> movq s rax # "load global variable"
     Just (_, Just i, _) -> movq (i % rbp) rax # "load local variable"
   DerefExp e' _ -> do
@@ -92,7 +94,9 @@ genExpr t e = case e of
       case tableLookup symTab s of
         Nothing -> error "unbound symbol passed typechecking!"
         Just (_, Nothing, _) -> leaq s r12 # "load address of global array"
-        Just (_, Just i, _) -> leaq (i % rbp) r12 # "load address of local array"
+        Just (_, Just i, _)
+          | i < 0 -> leaq (i % rbp) r12 # "load address of local array"
+          | i >= 0 -> movq (i % rbp) r12 # "load array argument address"
       addq r12 rax # "compute address of array reference"
     _ -> error "attempt to address in a non-type-safe way"
   ArrayExp s idx symTab -> do
@@ -101,7 +105,9 @@ genExpr t e = case e of
     case tableLookup symTab s of
       Nothing -> error "unbound symbol passed typechecking!"
       Just (_, Nothing, _) -> leaq s r12 # "load global array address"
-      Just (_, Just i, _) -> leaq (i % rbp) r12 # "load local array address"
+      Just (_, Just i, _)
+        | i < 0 -> leaq (i % rbp) r12 # "load local array address"
+        | i >= 0 -> movq (i % rbp) r12 # "load array argument address"
     add rax r12 # "compute actual offset"
     movq (0 r12) rax # "evaluate result"
   FuncExp fname args _ -> do
@@ -132,7 +138,9 @@ genExpr t e = case e of
         case tableLookup symTab s of
           Nothing -> error "unbound symbol passed typechecking!"
           Just (_, Nothing, _) -> leaq s r12 # "load global array address"
-          Just (_, Just i, _) -> leaq (i % rbp) r12 # "load local array address"
+          Just (_, Just i, _)
+            | i < 0 -> leaq (i % rbp) r12 # "load local array address"
+            | i >= 0 -> movq (i % rbp) r12 # "load array argument address"
         genExpr t idx
         imul (($.)(-8)) rax # "compute offset amount"
         addq rax r12 # "compute actual offset"

@@ -19,9 +19,9 @@ writeHeader = do
 
 writeStmt :: Label -> CodeGen ()
 writeStmt addr = do
-  movq rax rsi # "put argument where C expects it"
-  movq addr rdi # "put format string in %esi"
-  movq (($.)0) rax
+  mov rax rsi # "put argument where C expects it"
+  mov addr rdi # "put format string in %rdi"
+  mov (($.)0) rax
   call printf
 
 localVarLength :: Int -> Statement a -> Int
@@ -41,7 +41,7 @@ genExpr t e = case e of
     genExpr t l
     push rax
     genExpr t r
-    cmpq rax (0 rsp) # "comparison"
+    cmp rax (0 rsp) # "comparison"
     case op of
       OpLeq -> jg falseLabel
       OpLe -> jge falseLabel
@@ -49,67 +49,67 @@ genExpr t e = case e of
       OpNeq -> je falseLabel
       OpGe -> jle falseLabel
       OpGeq -> jl falseLabel
-    movq (($.)1) rax # "put 1 in accumulator if true"
+    mov (($.)1) rax # "put 1 in accumulator if true"
     jmp trueLabel # "jump to true label"
-    falseLabel -: movq (($.)0) rax # "put 0 in accumulator if false"
+    falseLabel -: mov (($.)0) rax # "put 0 in accumulator if false"
     trueLabel -: add (($.)8) rsp # "pop stack"
   ArithExp l op r -> do
     genExpr t l
     push rax
     genExpr t r
     case op of
-      OpPlus -> addq (0 rsp) rax # "add the two operands"
+      OpPlus -> add (0 rsp) rax # "add the two operands"
       OpMinus -> do
         sub rax (0 rsp) # "subtract the two operands"
-        movq (0 rsp) rax # "put value in accumulator"
+        mov (0 rsp) rax # "put value in accumulator"
       OpTimes -> imul (0 rsp) rax # "multiply the two operands"
       _ -> do
-        movq rax rbx # "put divisor in rbx"
-        movq (0 rsp) rax # "put dividend into rax"
+        mov rax rbx # "put divisor in rbx"
+        mov (0 rsp) rax # "put dividend into rax"
         cqto
         idiv rbx # "wat"
-    when (op == OpMod) $ movq rdx rax # "put remainder into accumulator"
-    addq (($.)8) rsp # "pop the stack"
-  IntExp i -> movq (($.)i) rax # "load number"
+    when (op == OpMod) $ mov rdx rax # "put remainder into accumulator"
+    add (($.)8) rsp # "pop the stack"
+  IntExp i -> mov (($.)i) rax # "load number"
   StringExp s -> case M.lookup s t of
     Nothing -> error "string wasn't assigned a label"
-    Just l -> movq ("$"++l) rax
+    Just l -> mov ("$"++l) rax
   VarExp s symTab -> case tableLookup symTab s of
     Nothing -> error "unbound symbol passed typechecking!"
-    Just (_, Nothing, TIntArray _) -> movq ("$" ++ s) rax # "load global array"
-    Just (_, Nothing, TStringArray _) -> movq ("$" ++ s) rax # "load global array"
-    Just (_, Nothing, _) -> movq s rax # "load global variable"
-    Just (_, Just i, _) -> movq (i % rbp) rax # "load local variable"
+    Just (_, Nothing, TIntArray _) -> mov ("$" ++ s) rax # "load global array"
+    Just (_, Nothing, TStringArray _) -> mov ("$" ++ s) rax # "load global array"
+    Just (_, Nothing, _) -> mov s rax # "load global variable"
+    Just (_, Just i, _) -> mov (i % rbp) rax # "load local variable"
   DerefExp e' _ -> do
     genExpr t e'
-    movq (0 rax) rax # "result of pointer dereference"
+    mov (0 rax) rax # "result of pointer dereference"
   AddrExp e' _ -> case e' of
     VarExp s symTab -> case tableLookup symTab s of
       Nothing -> error "unbound symbol passed typechecking!"
-      Just (_, Nothing, _) -> leaq s rax # "load address of global variable"
-      Just (_, Just i, _) -> leaq (i % rbp) rax # "load address of local variable"
+      Just (_, Nothing, _) -> lea s rax # "load address of global variable"
+      Just (_, Just i, _) -> lea (i % rbp) rax # "load address of local variable"
     ArrayExp s idx symTab -> do
       genExpr t idx
       imul (($.)(-8)) rax # "compute offset amount"
       case tableLookup symTab s of
         Nothing -> error "unbound symbol passed typechecking!"
-        Just (_, Nothing, _) -> leaq s r12 # "load address of global array"
+        Just (_, Nothing, _) -> lea s r12 # "load address of global array"
         Just (_, Just i, _)
-          | i < 0 -> leaq (i % rbp) r12 # "load address of local array"
-          | i >= 0 -> movq (i % rbp) r12 # "load array argument address"
-      addq r12 rax # "compute address of array reference"
+          | i < 0 -> lea (i % rbp) r12 # "load address of local array"
+          | i >= 0 -> mov (i % rbp) r12 # "load array argument address"
+      add r12 rax # "compute address of array reference"
     _ -> error "attempt to address in a non-type-safe way"
   ArrayExp s idx symTab -> do
     genExpr t idx
     imul (($.)(-8)) rax # "compute offset amount"
     case tableLookup symTab s of
       Nothing -> error "unbound symbol passed typechecking!"
-      Just (_, Nothing, _) -> leaq s r12 # "load global array address"
+      Just (_, Nothing, _) -> lea s r12 # "load global array address"
       Just (_, Just i, _)
-        | i < 0 -> leaq (i % rbp) r12 # "load local array address"
-        | i >= 0 -> movq (i % rbp) r12 # "load array argument address"
+        | i < 0 -> lea (i % rbp) r12 # "load local array address"
+        | i >= 0 -> mov (i % rbp) r12 # "load array argument address"
     add rax r12 # "compute actual offset"
-    movq (0 r12) rax # "evaluate result"
+    mov (0 r12) rax # "evaluate result"
   FuncExp fname args _ -> do
     forM_ (reverse args) $ \arg -> do
       genExpr t arg
@@ -119,43 +119,43 @@ genExpr t e = case e of
     pop rbp # "restore frame pointer"
     add (($.) (8 * length args)) rsp # "pop arguments off the stack"
   ReadExp -> do
-    movq (($.)0) rax # "clear return value"
+    mov (($.)0) rax # "clear return value"
     sub (($.)40) rsp # "decrement stack pointer for read()"
-    leaq (24 rsp) rsi # "pointer for read() result"
-    movq readIntString rdi # "move format string into rdi"
+    lea (24 rsp) rsi # "pointer for read() result"
+    mov readIntString rdi # "move format string into rdi"
     call scanf
-    movq (24 rsp) rax # "put result in accumulator"
-    addq (($.)40) rsp # "pop stack"
+    mov (24 rsp) rax # "put result in accumulator"
+    add (($.)40) rsp # "pop stack"
   AssignExp v e' -> do
     genExpr t e'
     case v of
       IdVar s symTab -> case tableLookup symTab s of
         Nothing -> error "unbound symbol passed typechecking!"
-        Just (_, Nothing, _) -> movq rax s # "assign to global variable"
-        Just (_, Just i, _) -> movq rax (i % rbp) # "assign to local variable"
+        Just (_, Nothing, _) -> mov rax s # "assign to global variable"
+        Just (_, Just i, _) -> mov rax (i % rbp) # "assign to local variable"
       ArrVar s idx symTab -> do
         push rax # "store result of expression"
         case tableLookup symTab s of
           Nothing -> error "unbound symbol passed typechecking!"
-          Just (_, Nothing, _) -> leaq s r12 # "load global array address"
+          Just (_, Nothing, _) -> lea s r12 # "load global array address"
           Just (_, Just i, _)
-            | i < 0 -> leaq (i % rbp) r12 # "load local array address"
-            | i >= 0 -> movq (i % rbp) r12 # "load array argument address"
+            | i < 0 -> lea (i % rbp) r12 # "load local array address"
+            | i >= 0 -> mov (i % rbp) r12 # "load array argument address"
         genExpr t idx
         imul (($.)(-8)) rax # "compute offset amount"
-        addq rax r12 # "compute actual offset"
+        add rax r12 # "compute actual offset"
         pop rax # "get expression result back"
-        movq rax (0 r12) # "assign to local variable"
+        mov rax (0 r12) # "assign to local variable"
       DerefVar s symTab -> case tableLookup symTab s of
         Nothing -> error "unbound symbol passed typechecking!"
         Just (_, Nothing, _) -> do
-          movq s r12 # "get value of pointer"
-          movq rax (0 r12) # "assign result to value of pointer"
+          mov s r12 # "get value of pointer"
+          mov rax (0 r12) # "assign result to value of pointer"
         Just (_, Just i, _) -> do
-          movq rbp r12 # "get base pointer"
+          mov rbp r12 # "get base pointer"
           add (($.)i) r12 # "compute value of pointer"
-          movq (0 r12) r12 # "dereference pointer"
-          movq rax (0 r12) # "assign result to value of pointer"
+          mov (0 r12) r12 # "dereference pointer"
+          mov rax (0 r12) # "assign result to value of pointer"
 
 genStmt :: M.Map String String -> String -> Statement SymbolTable -> CodeGen ()
 genStmt t fname stmt = case stmt of
@@ -164,7 +164,7 @@ genStmt t fname stmt = case stmt of
   IfStmt e s -> do
     l <- newLabel
     genExpr t e
-    cmpq (($.)0) rax # "compare result to 0"
+    cmp (($.)0) rax # "compare result to 0"
     je l
     genStmt t fname s
     label l
@@ -172,7 +172,7 @@ genStmt t fname stmt = case stmt of
     els <- newLabel
     fin <- newLabel
     genExpr t e
-    cmpq (($.)0) rax # "compare result to 0"
+    cmp (($.)0) rax # "compare result to 0"
     je els # "jump to else case"
     genStmt t fname s1
     jmp fin # "jump to end of if/else"
@@ -184,7 +184,7 @@ genStmt t fname stmt = case stmt of
     start <- newLabel
     label start # "top of loop"
     genExpr t e
-    cmpq (($.)0) rax # "compare result to 0"
+    cmp (($.)0) rax # "compare result to 0"
     je end # "jump over statement"
     genStmt t fname s
     jmp start # "loop"
@@ -213,12 +213,12 @@ genDecl :: M.Map String String -> Declaration SymbolTable -> CodeGen ()
 genDecl t (FDecl (FunDec _ fname _ stmt)) = do
   let varLength = localVarLength 0 stmt
   fname -: do
-    movq rsp rbp # "move stack pointer to frame pointer"
+    mov rsp rbp # "move stack pointer to frame pointer"
     sub (($.)varLength) rsp # "allocate local vars"
     genStmt t fname stmt
   "." ++ fname ++ "_ret" -: do
-    addq (($.)varLength) rsp # "deallocate local vars"
-    when (fname == "main") $ movq (($.)0) rax # "main should return 0"
+    add (($.)varLength) rsp # "deallocate local vars"
+    when (fname == "main") $ mov (($.)0) rax # "main should return 0"
     ret
   write "\n"
 genDecl _ (VDecl (VarDec _ i name)) = write $ ".comm " ++ name ++ ", " ++ show i ++ ", 64"

@@ -40,22 +40,18 @@ write s = modify (\c -> c { code = s:code c})
 gen :: OpCode -> String -> String -> CodeGen ()
 gen op src dest = write $ T.printf "\t%s %s, %s" op src dest
 
-add, addl, addq, sub, imul, movq, movl, cmpq, leaq :: Op
+add, sub, imul, mov, cmp, lea :: Op
 add = gen "add"
-addl = gen "addl"
-addq = gen "addq"
 sub = gen "sub"
 imul = gen "imul"
-movq = gen "movq"
-movl = gen "movl"
-cmpq = gen "cmpq"
-leaq = gen "leaq"
+mov = gen "movq"
+cmp = gen "cmpq"
+lea = gen "leaq"
 
 idiv :: String -> CodeGen ()
 idiv s = write $ "\tidiv " ++ s
 
-cltq, cqto :: CodeGen ()
-cltq = write "\tcltq"
+cqto :: CodeGen ()
 cqto = write "\tcqto"
 
 push :: String -> CodeGen ()
